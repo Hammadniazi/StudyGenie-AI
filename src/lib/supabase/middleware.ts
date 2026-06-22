@@ -27,16 +27,8 @@ export async function updateSession(request: NextRequest) {
     },
   })
 
-  const { data: { user } } = await supabase.auth.getUser()
-
-  const protectedPaths = ['/dashboard', '/tutor', '/flashcards', '/quizzes', '/analytics', '/study-planner', '/upload']
-  const isProtectedPath = protectedPaths.some(path => request.nextUrl.pathname.startsWith(path))
-
-  if (!user && isProtectedPath) {
-    const url = request.nextUrl.clone()
-    url.pathname = '/login'
-    return NextResponse.redirect(url)
-  }
+  // Refresh session — no forced redirects; app pages work in guest mode with demo data
+  await supabase.auth.getUser()
 
   return supabaseResponse
 }

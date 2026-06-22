@@ -12,8 +12,10 @@ import {
   Calendar,
   BarChart3,
   LogOut,
+  LogIn,
   X,
   Sparkles,
+  User,
 } from 'lucide-react'
 import { createClient, isSupabaseConfigured } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
@@ -38,6 +40,8 @@ interface SidebarProps {
 export function Sidebar({ isOpen, onClose, userEmail, userName }: SidebarProps) {
   const pathname = usePathname()
   const router = useRouter()
+  const isGuest = !userEmail
+
   async function handleLogout() {
     if (isSupabaseConfigured()) {
       const supabase = createClient()
@@ -61,7 +65,6 @@ export function Sidebar({ isOpen, onClose, userEmail, userName }: SidebarProps) 
         className={cn(
           'fixed left-0 top-0 z-50 h-full flex flex-col glass border-r border-border transition-transform duration-300 ease-in-out',
           'w-[240px]',
-          // Mobile: slide in/out
           'lg:translate-x-0',
           isOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
         )}
@@ -109,26 +112,43 @@ export function Sidebar({ isOpen, onClose, userEmail, userName }: SidebarProps) 
         <div className="border-t border-border p-3 shrink-0">
           <div className="flex items-center gap-3 px-2 py-2 mb-2 rounded-lg">
             <div className="w-8 h-8 rounded-full bg-primary/20 border border-primary/30 flex items-center justify-center shrink-0">
-              <span className="text-xs font-bold text-primary">
-                {(userName || userEmail || 'U').charAt(0).toUpperCase()}
-              </span>
+              {isGuest
+                ? <User className="w-4 h-4 text-primary" />
+                : <span className="text-xs font-bold text-primary">{(userName || userEmail || 'U').charAt(0).toUpperCase()}</span>
+              }
             </div>
             <div className="min-w-0">
               <p className="text-sm font-medium text-foreground truncate">
-                {userName || 'Student'}
+                {isGuest ? 'Guest User' : (userName || 'Student')}
               </p>
-              <p className="text-xs text-muted-foreground truncate">{userEmail || ''}</p>
+              <p className="text-xs text-muted-foreground truncate">
+                {isGuest ? 'Exploring the app' : userEmail}
+              </p>
             </div>
           </div>
-          <Button
-            variant="ghost"
-            size="sm"
-            className="w-full justify-start gap-2 text-muted-foreground hover:text-foreground"
-            onClick={handleLogout}
-          >
-            <LogOut className="w-4 h-4" />
-            Log out
-          </Button>
+
+          {isGuest ? (
+            <Link href="/login" onClick={onClose}>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="w-full justify-start gap-2 text-primary hover:text-primary hover:bg-primary/10"
+              >
+                <LogIn className="w-4 h-4" />
+                Sign In
+              </Button>
+            </Link>
+          ) : (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="w-full justify-start gap-2 text-muted-foreground hover:text-foreground"
+              onClick={handleLogout}
+            >
+              <LogOut className="w-4 h-4" />
+              Log out
+            </Button>
+          )}
         </div>
       </aside>
     </>
