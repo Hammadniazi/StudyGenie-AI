@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useRef } from 'react'
 import { useDropzone } from 'react-dropzone'
 import { Upload, FileText, X, Sparkles, CreditCard, Trophy, BookOpen, Target, Hash, ClipboardList } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -24,6 +24,8 @@ export default function UploadPage() {
   const [uploadProgress, setUploadProgress] = useState(0)
   const [analyzing, setAnalyzing] = useState(false)
   const [summary, setSummary] = useState<Summary | null>(null)
+  // The actual content sent to AI — reused for flashcard/quiz generation
+  const analyzedContent = useRef<string>('')
 
   const onDrop = useCallback((acceptedFiles: File[]) => {
     const f = acceptedFiles[0]
@@ -52,19 +54,52 @@ export default function UploadPage() {
     }, 200)
   }
 
+  async function readFileContent(f: File): Promise<string> {
+    if (f.type === 'text/plain') {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader()
+        reader.onload = (e) => resolve(e.target?.result as string)
+        reader.onerror = reject
+        reader.readAsText(f)
+      })
+    }
+    if (f.type === 'application/pdf') {
+      // For PDFs, send to server for parsing
+      const formData = new FormData()
+      formData.append('file', f)
+      const res = await fetch('/api/parse-pdf', { method: 'POST', body: formData })
+      if (!res.ok) throw new Error('PDF parsing failed')
+      const { text } = await res.json()
+      return text
+    }
+    throw new Error('Unsupported file type')
+  }
+
   async function handleAnalyze() {
-    const content = manualText || (file ? `[Content from file: ${file.name}]` : '')
-    if (!content && !file) {
+    let content = manualText.trim()
+
+    if (!content && file) {
+      try {
+        content = await readFileContent(file)
+      } catch {
+        toast({ title: 'Could not read file', description: 'Please paste the content manually instead.', variant: 'destructive' })
+        return
+      }
+    }
+
+    if (!content) {
       toast({ title: 'No content', description: 'Please upload a file or enter text.', variant: 'destructive' })
       return
     }
+
+    analyzedContent.current = content
 
     setAnalyzing(true)
     try {
       const res = await fetch('/api/analyze', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ content: content || 'Sample biology material about cells and DNA.', title, subject }),
+        body: JSON.stringify({ content, title, subject }),
       })
       const data = await res.json()
       if (data.error) throw new Error(data.error)
@@ -78,32 +113,42 @@ export default function UploadPage() {
   }
 
   async function handleGenerateFlashcards() {
-    const content = manualText || 'Sample material for flashcard generation.'
+    const content = analyzedContent.current || manualText.trim()
+    if (!content) {
+      toast({ title: 'No content', description: 'Analyze your material first.', variant: 'destructive' })
+      return
+    }
     try {
       const res = await fetch('/api/flashcards/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ content, count: 10 }),
       })
-      await res.json()
-      toast({ title: 'Flashcards generated!', description: 'Check the Flashcards page.' })
-    } catch {
-      toast({ title: 'Failed to generate flashcards', variant: 'destructive' })
+      const data = await res.json()
+      if (data.error) throw new Error(data.error)
+      toast({ title: `${Array.isArray(data) ? data.length : 10} flashcards generated!`, description: 'Check the Flashcards page.' })
+    } catch (e) {
+      toast({ title: 'Failed to generate flashcards', description: String(e), variant: 'destructive' })
     }
   }
 
   async function handleGenerateQuiz() {
-    const content = manualText || 'Sample material for quiz generation.'
+    const content = analyzedContent.current || manualText.trim()
+    if (!content) {
+      toast({ title: 'No content', description: 'Analyze your material first.', variant: 'destructive' })
+      return
+    }
     try {
       const res = await fetch('/api/quiz/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ content, difficulty: 'medium', count: 10 }),
       })
-      await res.json()
+      const data = await res.json()
+      if (data.error) throw new Error(data.error)
       toast({ title: 'Quiz generated!', description: 'Check the Quizzes page.' })
-    } catch {
-      toast({ title: 'Failed to generate quiz', variant: 'destructive' })
+    } catch (e) {
+      toast({ title: 'Failed to generate quiz', description: String(e), variant: 'destructive' })
     }
   }
 
@@ -134,7 +179,7 @@ export default function UploadPage() {
                 <FileText className="w-4 h-4 text-primary" />
                 <span className="text-sm font-medium text-foreground">{file.name}</span>
                 <button
-                  onClick={(e) => { e.stopPropagation(); setFile(null); setUploadProgress(0) }}
+                  onClick={(e) => { e.stopPropagation(); setFile(null); setUploadProgress(0); analyzedContent.current = '' }}
                   className="text-muted-foreground hover:text-destructive"
                 >
                   <X className="w-4 h-4" />
@@ -152,9 +197,16 @@ export default function UploadPage() {
 
           {file && uploadProgress < 100 && (
             <div className="space-y-1">
-              <p className="text-xs text-muted-foreground">Uploading...</p>
+              <p className="text-xs text-muted-foreground">Reading file...</p>
               <Progress value={uploadProgress} />
             </div>
+          )}
+
+          {file?.type === 'application/pdf' && (
+            <p className="text-xs text-muted-foreground flex items-center gap-1.5">
+              <Badge variant="outline" className="text-xs">PDF</Badge>
+              PDF content will be extracted automatically when you click Analyze.
+            </p>
           )}
 
           {/* Or manual text */}

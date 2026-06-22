@@ -9,6 +9,7 @@ import { Progress } from '@/components/ui/progress'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { cn } from '@/lib/utils'
+import { toast } from '@/components/ui/use-toast'
 import type { Quiz, QuizQuestion, QuizResult } from '@/types'
 import { v4 as uuidv4 } from 'uuid'
 
@@ -32,7 +33,8 @@ type QuizView = 'list' | 'taking' | 'results'
 
 export default function QuizzesPage() {
   const [view, setView] = useState<QuizView>('list')
-  const [quiz] = useState<Quiz>(MOCK_QUIZ)
+  const [quizzes, setQuizzes] = useState<Quiz[]>([MOCK_QUIZ])
+  const [quiz, setQuiz] = useState<Quiz>(MOCK_QUIZ)
   const [currentQ, setCurrentQ] = useState(0)
   const [answers, setAnswers] = useState<Record<string, string>>({})
   const [result, setResult] = useState<QuizResult | null>(null)
@@ -88,13 +90,36 @@ export default function QuizzesPage() {
   async function handleGenerate() {
     setGenerating(true)
     try {
-      await fetch('/api/quiz/generate', {
+      const res = await fetch('/api/quiz/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ content: 'Biology cell biology and genetics material', difficulty: 'medium', count: 5 }),
+        body: JSON.stringify({ content: 'General knowledge quiz covering science, history, mathematics, and technology.', difficulty: 'medium', count: 5 }),
       })
-    } catch { /* ignore */ }
+      const questions = await res.json()
+      if (Array.isArray(questions) && questions.length > 0) {
+        const newQuiz: Quiz = {
+          id: uuidv4(),
+          user_id: '',
+          title: `AI Generated Quiz — ${new Date().toLocaleDateString()}`,
+          difficulty: 'medium',
+          questions: questions.map((q: Partial<QuizQuestion>) => ({ ...q, id: uuidv4() } as QuizQuestion)),
+          created_at: new Date().toISOString(),
+        }
+        setQuizzes((prev) => [newQuiz, ...prev])
+        toast({ title: 'New quiz generated!', description: `${questions.length} questions added.` })
+      }
+    } catch {
+      toast({ title: 'Failed to generate quiz', variant: 'destructive' })
+    }
     setGenerating(false)
+  }
+
+  function startQuiz(q: Quiz) {
+    setQuiz(q)
+    setCurrentQ(0)
+    setAnswers({})
+    setResult(null)
+    setView('taking')
   }
 
   // --- List view ---
@@ -109,27 +134,34 @@ export default function QuizzesPage() {
           </Button>
         </div>
 
-        <Card className="glass border-border hover:border-primary/30 transition-colors cursor-pointer" onClick={() => setView('taking')}>
-          <CardContent className="p-6">
-            <div className="flex items-start justify-between gap-4">
-              <div className="flex-1">
-                <div className="flex items-center gap-2 mb-2">
-                  <h3 className="font-semibold text-foreground">{quiz.title}</h3>
-                  <Badge variant="secondary">{quiz.difficulty}</Badge>
-                </div>
-                <p className="text-sm text-muted-foreground mb-4">{quiz.questions.length} questions • Multiple choice, True/False, Short answer</p>
-                <div className="flex gap-2 flex-wrap">
-                  {['Cell Biology', 'Genetics', 'Biochemistry'].map((t) => (
-                    <Badge key={t} variant="outline" className="text-xs">{t}</Badge>
-                  ))}
-                </div>
-              </div>
-              <Button size="sm" className="gap-2 shrink-0">
-                Start <ArrowRight className="w-3.5 h-3.5" />
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
+        <div className="space-y-3">
+          {quizzes.map((q) => {
+            const topics = [...new Set(q.questions.map((qn) => qn.topic_tag))].slice(0, 3)
+            return (
+              <Card key={q.id} className="glass border-border hover:border-primary/30 transition-colors">
+                <CardContent className="p-6">
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-2">
+                        <h3 className="font-semibold text-foreground">{q.title}</h3>
+                        <Badge variant="secondary">{q.difficulty}</Badge>
+                      </div>
+                      <p className="text-sm text-muted-foreground mb-3">{q.questions.length} questions • Multiple choice, True/False, Short answer</p>
+                      <div className="flex gap-2 flex-wrap">
+                        {topics.map((t) => (
+                          <Badge key={t} variant="outline" className="text-xs">{t}</Badge>
+                        ))}
+                      </div>
+                    </div>
+                    <Button size="sm" className="gap-2 shrink-0" onClick={() => startQuiz(q)}>
+                      Start <ArrowRight className="w-3.5 h-3.5" />
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            )
+          })}
+        </div>
       </div>
     )
   }

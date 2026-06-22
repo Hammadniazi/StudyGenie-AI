@@ -37,8 +37,9 @@ export function Header({ onMenuClick, userEmail, userName, xp = 0 }: HeaderProps
   function toggleTheme() {
     setIsDark((prev) => {
       const next = !prev
-      document.documentElement.classList.toggle('light', next)
-      document.documentElement.classList.toggle('dark', !next)
+      // next=true → dark mode, next=false → light mode
+      document.documentElement.classList.toggle('light', !next)
+      document.documentElement.classList.toggle('dark', next)
       return next
     })
   }
