@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { usePathname } from 'next/navigation'
-import { Menu, Bell, Sun, Moon, Zap } from 'lucide-react'
+import { Menu, Bell, Sun, Moon, Zap, User } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 
@@ -83,9 +83,13 @@ export function Header({ onMenuClick, userEmail, userName, xp = 0 }: HeaderProps
         <div className={cn(
           'w-8 h-8 rounded-full bg-primary/20 border border-primary/30 flex items-center justify-center cursor-pointer',
         )}>
-          <span className="text-xs font-bold text-primary">
-            {(userName || userEmail || 'U').charAt(0).toUpperCase()}
-          </span>
+          {userEmail || userName ? (
+            <span className="text-xs font-bold text-primary">
+              {(userName || userEmail!).charAt(0).toUpperCase()}
+            </span>
+          ) : (
+            <User className="w-4 h-4 text-primary" />
+          )}
         </div>
       </div>
     </header>

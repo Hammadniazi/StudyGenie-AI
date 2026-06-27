@@ -18,20 +18,38 @@ export async function POST(req: NextRequest) {
     }
 
     const bytes = await file.arrayBuffer()
-    const buffer = Buffer.from(bytes)
+    const data = new Uint8Array(bytes)
 
-    // Dynamically import pdf-parse to avoid edge runtime issues
-    const pdfParse = (await import('pdf-parse')).default
-    const data = await pdfParse(buffer)
-
-    const text = data.text?.trim()
-    if (!text) {
-      return NextResponse.json({ error: 'Could not extract text from PDF. The PDF may be scanned/image-based.' }, { status: 422 })
+    // pdf-parse v2 class-based API.
+    // serverExternalPackages in next.config.ts prevents Next.js from bundling
+    // this package (and its native deps: pdfjs-dist, @napi-rs/canvas).
+    let PDFParse: typeof import('pdf-parse').PDFParse
+    try {
+      ;({ PDFParse } = await import('pdf-parse'))
+    } catch (importErr) {
+      console.error('[/api/parse-pdf] Failed to import pdf-parse:', importErr)
+      return NextResponse.json({ error: 'PDF parser unavailable. Please paste your text manually.' }, { status: 503 })
     }
 
-    return NextResponse.json({ text, pages: data.numpages })
+    const parser = new PDFParse({ data })
+    const result = await parser.getText()
+    await parser.destroy()
+
+    const text = result.pages.map((p: { text: string }) => p.text).join('\n').trim()
+
+    if (!text) {
+      return NextResponse.json(
+        { error: 'Could not extract text from PDF. The PDF may be scanned/image-based.' },
+        { status: 422 }
+      )
+    }
+
+    return NextResponse.json({ text, pages: result.total })
   } catch (error) {
-    console.error('[/api/parse-pdf]', error)
-    return NextResponse.json({ error: 'Failed to parse PDF.' }, { status: 500 })
+    console.error('[/api/parse-pdf] error:', error)
+    return NextResponse.json(
+      { error: error instanceof Error ? error.message : 'Failed to parse PDF.' },
+      { status: 500 }
+    )
   }
 }
