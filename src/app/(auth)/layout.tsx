@@ -38,12 +38,21 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
       {/* Right: auth form */}
       <div className="flex-1 flex items-center justify-center p-6">
         <div className="w-full max-w-md">
-          {/* Mobile brand */}
-          <div className="lg:hidden flex items-center gap-2 mb-8 justify-center">
-            <div className="w-8 h-8 rounded-lg bg-primary/20 border border-primary/30 flex items-center justify-center">
-              <Sparkles className="w-4 h-4 text-primary" />
-            </div>
-            <span className="font-bold text-lg">StudyGenie AI</span>
+          {/* Mobile brand — links home */}
+          <div className="lg:hidden flex items-center gap-2 mb-6 justify-center">
+            <Link href="/" className="flex items-center gap-2">
+              <div className="w-8 h-8 rounded-lg bg-primary/20 border border-primary/30 flex items-center justify-center">
+                <Sparkles className="w-4 h-4 text-primary" />
+              </div>
+              <span className="font-bold text-lg">StudyGenie AI</span>
+            </Link>
+          </div>
+          {/* Back to home — visible on all screen sizes */}
+          <div className="mb-4">
+            <Link href="/" className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors">
+              <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="m15 18-6-6 6-6"/></svg>
+              Back to home
+            </Link>
           </div>
           {children}
         </div>

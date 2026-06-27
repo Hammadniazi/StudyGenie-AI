@@ -13,6 +13,7 @@ import {
   BarChart3,
   LogOut,
   LogIn,
+  Home,
   X,
   Sparkles,
   User,
@@ -71,7 +72,7 @@ export function Sidebar({ isOpen, onClose, userEmail, userName }: SidebarProps) 
       >
         {/* Brand */}
         <div className="flex items-center justify-between h-16 px-4 border-b border-border shrink-0">
-          <Link href="/dashboard" className="flex items-center gap-2" onClick={onClose}>
+          <Link href={isGuest ? '/' : '/dashboard'} className="flex items-center gap-2" onClick={onClose}>
             <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-primary/20 border border-primary/30">
               <Sparkles className="w-4 h-4 text-primary" />
             </div>
@@ -128,16 +129,28 @@ export function Sidebar({ isOpen, onClose, userEmail, userName }: SidebarProps) 
           </div>
 
           {isGuest ? (
-            <Link href="/login" onClick={onClose}>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="w-full justify-start gap-2 text-primary hover:text-primary hover:bg-primary/10"
-              >
-                <LogIn className="w-4 h-4" />
-                Sign In
-              </Button>
-            </Link>
+            <div className="space-y-1">
+              <Link href="/login" onClick={onClose}>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="w-full justify-start gap-2 text-primary hover:text-primary hover:bg-primary/10"
+                >
+                  <LogIn className="w-4 h-4" />
+                  Sign In
+                </Button>
+              </Link>
+              <Link href="/" onClick={onClose}>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="w-full justify-start gap-2 text-muted-foreground hover:text-foreground"
+                >
+                  <Home className="w-4 h-4" />
+                  Go to Homepage
+                </Button>
+              </Link>
+            </div>
           ) : (
             <Button
               variant="ghost"
