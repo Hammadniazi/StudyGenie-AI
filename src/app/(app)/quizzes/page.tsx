@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Trophy, Clock, CheckCircle, XCircle, ArrowRight, RotateCcw, Sparkles, Target } from 'lucide-react'
+import { Trophy, CheckCircle, XCircle, ArrowRight, RotateCcw, Sparkles, Target } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Progress } from '@/components/ui/progress'
@@ -10,45 +10,39 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { cn } from '@/lib/utils'
 import { toast } from '@/components/ui/use-toast'
-import type { Quiz, QuizQuestion, QuizResult } from '@/types'
+import { useStudyData } from '@/contexts/study-data-context'
+import type { Quiz, QuizResult } from '@/types'
 import { v4 as uuidv4 } from 'uuid'
-
-const MOCK_QUIZ: Quiz = {
-  id: '1',
-  user_id: '',
-  material_id: undefined,
-  title: 'Biology Fundamentals Quiz',
-  difficulty: 'medium',
-  created_at: '',
-  questions: [
-    { id: '1', question: 'What organelle is responsible for producing ATP in eukaryotic cells?', type: 'multiple_choice', options: ['Nucleus', 'Mitochondria', 'Ribosome', 'Golgi apparatus'], correct_answer: 'Mitochondria', explanation: 'Mitochondria produce ATP through cellular respiration, earning the nickname "powerhouse of the cell".', topic_tag: 'Cell Biology' },
-    { id: '2', question: 'DNA replication is a semi-conservative process.', type: 'true_false', options: ['True', 'False'], correct_answer: 'True', explanation: 'DNA replication is semi-conservative — each new double helix contains one original strand and one new strand.', topic_tag: 'Genetics' },
-    { id: '3', question: 'What protein carries oxygen in red blood cells?', type: 'multiple_choice', options: ['Insulin', 'Hemoglobin', 'Albumin', 'Keratin'], correct_answer: 'Hemoglobin', explanation: 'Hemoglobin is the iron-containing protein in red blood cells that binds and transports oxygen.', topic_tag: 'Biochemistry' },
-    { id: '4', question: 'How many chromosomes do human somatic cells typically have?', type: 'short_answer', correct_answer: '46', explanation: 'Human somatic (non-reproductive) cells contain 46 chromosomes arranged in 23 pairs.', topic_tag: 'Genetics' },
-    { id: '5', question: 'Photosynthesis occurs in the mitochondria.', type: 'true_false', options: ['True', 'False'], correct_answer: 'False', explanation: 'Photosynthesis occurs in chloroplasts, not mitochondria. Mitochondria are the site of cellular respiration.', topic_tag: 'Cell Biology' },
-  ],
-}
 
 type QuizView = 'list' | 'taking' | 'results'
 
 export default function QuizzesPage() {
+  const { quizzes, addQuiz } = useStudyData()
+
   const [view, setView] = useState<QuizView>('list')
-  const [quizzes, setQuizzes] = useState<Quiz[]>([MOCK_QUIZ])
-  const [quiz, setQuiz] = useState<Quiz>(MOCK_QUIZ)
+  const [activeQuiz, setActiveQuiz] = useState<Quiz>(quizzes[0])
   const [currentQ, setCurrentQ] = useState(0)
   const [answers, setAnswers] = useState<Record<string, string>>({})
   const [result, setResult] = useState<QuizResult | null>(null)
   const [generating, setGenerating] = useState(false)
 
-  const question = quiz.questions[currentQ]
-  const progress = ((currentQ + 1) / quiz.questions.length) * 100
+  const question = activeQuiz?.questions[currentQ]
+  const progress = activeQuiz ? ((currentQ + 1) / activeQuiz.questions.length) * 100 : 0
+
+  function startQuiz(q: Quiz) {
+    setActiveQuiz(q)
+    setCurrentQ(0)
+    setAnswers({})
+    setResult(null)
+    setView('taking')
+  }
 
   function handleAnswer(qId: string, answer: string) {
     setAnswers((prev) => ({ ...prev, [qId]: answer }))
   }
 
   function handleNext() {
-    if (currentQ < quiz.questions.length - 1) {
+    if (currentQ < activeQuiz.questions.length - 1) {
       setCurrentQ((c) => c + 1)
     } else {
       submitQuiz()
@@ -56,23 +50,23 @@ export default function QuizzesPage() {
   }
 
   function submitQuiz() {
-    const answersArr = quiz.questions.map((q) => ({
+    const answersArr = activeQuiz.questions.map((q) => ({
       question_id: q.id,
       answer: answers[q.id] ?? '',
       is_correct: (answers[q.id] ?? '').trim().toLowerCase() === q.correct_answer.toLowerCase(),
     }))
     const score = answersArr.filter((a) => a.is_correct).length
-    const weakAreas = quiz.questions
-      .filter((q, i) => !answersArr[i].is_correct)
+    const weakAreas = activeQuiz.questions
+      .filter((_, i) => !answersArr[i].is_correct)
       .map((q) => q.topic_tag)
       .filter((v, i, a) => a.indexOf(v) === i)
 
     setResult({
       id: uuidv4(),
-      quiz_id: quiz.id,
+      quiz_id: activeQuiz.id,
       user_id: '',
       score,
-      total_questions: quiz.questions.length,
+      total_questions: activeQuiz.questions.length,
       answers: answersArr,
       weak_areas: weakAreas,
       completed_at: new Date().toISOString(),
@@ -80,7 +74,7 @@ export default function QuizzesPage() {
     setView('results')
   }
 
-  function resetQuiz() {
+  function resetToList() {
     setCurrentQ(0)
     setAnswers({})
     setResult(null)
@@ -93,36 +87,26 @@ export default function QuizzesPage() {
       const res = await fetch('/api/quiz/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ content: 'General knowledge quiz covering science, history, mathematics, and technology.', difficulty: 'medium', count: 5 }),
-      })
-      const questions = await res.json()
-      if (Array.isArray(questions) && questions.length > 0) {
-        const newQuiz: Quiz = {
-          id: uuidv4(),
-          user_id: '',
-          title: `AI Generated Quiz — ${new Date().toLocaleDateString()}`,
+        body: JSON.stringify({
+          content: 'General knowledge quiz covering science, history, mathematics, and technology.',
           difficulty: 'medium',
-          questions: questions.map((q: Partial<QuizQuestion>) => ({ ...q, id: uuidv4() } as QuizQuestion)),
-          created_at: new Date().toISOString(),
-        }
-        setQuizzes((prev) => [newQuiz, ...prev])
-        toast({ title: 'New quiz generated!', description: `${questions.length} questions added.` })
+          count: 5,
+        }),
+      })
+      const data = await res.json()
+      if (Array.isArray(data) && data.length > 0) {
+        const title = `AI Quiz — ${new Date().toLocaleDateString()}`
+        addQuiz(title, 'medium', data)
+        toast({ title: 'New quiz added!', description: `${data.length} questions ready on the list.` })
       }
     } catch {
       toast({ title: 'Failed to generate quiz', variant: 'destructive' })
+    } finally {
+      setGenerating(false)
     }
-    setGenerating(false)
   }
 
-  function startQuiz(q: Quiz) {
-    setQuiz(q)
-    setCurrentQ(0)
-    setAnswers({})
-    setResult(null)
-    setView('taking')
-  }
-
-  // --- List view ---
+  // ── List view ──────────────────────────────────────────────────────────────
   if (view === 'list') {
     return (
       <div className="p-6 max-w-4xl mx-auto space-y-6">
@@ -146,7 +130,9 @@ export default function QuizzesPage() {
                         <h3 className="font-semibold text-foreground">{q.title}</h3>
                         <Badge variant="secondary">{q.difficulty}</Badge>
                       </div>
-                      <p className="text-sm text-muted-foreground mb-3">{q.questions.length} questions • Multiple choice, True/False, Short answer</p>
+                      <p className="text-sm text-muted-foreground mb-3">
+                        {q.questions.length} questions
+                      </p>
                       <div className="flex gap-2 flex-wrap">
                         {topics.map((t) => (
                           <Badge key={t} variant="outline" className="text-xs">{t}</Badge>
@@ -166,14 +152,13 @@ export default function QuizzesPage() {
     )
   }
 
-  // --- Taking view ---
+  // ── Taking view ────────────────────────────────────────────────────────────
   if (view === 'taking' && question) {
     return (
       <div className="p-6 max-w-2xl mx-auto space-y-6">
-        {/* Progress */}
         <div className="space-y-2">
           <div className="flex justify-between text-sm text-muted-foreground">
-            <span>Question {currentQ + 1} of {quiz.questions.length}</span>
+            <span>Question {currentQ + 1} of {activeQuiz.questions.length}</span>
             <Badge variant="outline">{question.topic_tag}</Badge>
           </div>
           <Progress value={progress} />
@@ -219,11 +204,9 @@ export default function QuizzesPage() {
         </AnimatePresence>
 
         <div className="flex justify-between">
-          <Button variant="outline" onClick={() => { setCurrentQ(0); setAnswers({}); setView('list') }}>
-            Cancel
-          </Button>
+          <Button variant="outline" onClick={resetToList}>Cancel</Button>
           <Button onClick={handleNext} disabled={!answers[question.id]} className="gap-2">
-            {currentQ === quiz.questions.length - 1 ? 'Submit Quiz' : 'Next'}
+            {currentQ === activeQuiz.questions.length - 1 ? 'Submit Quiz' : 'Next'}
             <ArrowRight className="w-4 h-4" />
           </Button>
         </div>
@@ -231,7 +214,7 @@ export default function QuizzesPage() {
     )
   }
 
-  // --- Results view ---
+  // ── Results view ───────────────────────────────────────────────────────────
   if (view === 'results' && result) {
     const pct = Math.round((result.score / result.total_questions) * 100)
     return (
@@ -268,7 +251,7 @@ export default function QuizzesPage() {
         )}
 
         <div className="space-y-3">
-          {quiz.questions.map((q, i) => {
+          {activeQuiz.questions.map((q, i) => {
             const a = result.answers[i]
             return (
               <Card key={q.id} className={cn('border', a.is_correct ? 'border-green-700/40 bg-green-900/10' : 'border-red-700/40 bg-red-900/10')}>
@@ -292,7 +275,7 @@ export default function QuizzesPage() {
           })}
         </div>
 
-        <Button onClick={resetQuiz} className="w-full gap-2" variant="outline">
+        <Button onClick={resetToList} className="w-full gap-2" variant="outline">
           <RotateCcw className="w-4 h-4" />
           Back to Quizzes
         </Button>

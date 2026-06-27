@@ -14,9 +14,11 @@ import { Progress } from '@/components/ui/progress'
 import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
 import { toast } from '@/components/ui/use-toast'
+import { useStudyData } from '@/contexts/study-data-context'
 import type { Summary } from '@/types'
 
 export default function UploadPage() {
+  const { addFlashcards, addQuiz } = useStudyData()
   const [file, setFile] = useState<File | null>(null)
   const [manualText, setManualText] = useState('')
   const [title, setTitle] = useState('')
@@ -126,7 +128,10 @@ export default function UploadPage() {
       })
       const data = await res.json()
       if (data.error) throw new Error(data.error)
-      toast({ title: `${Array.isArray(data) ? data.length : 10} flashcards generated!`, description: 'Check the Flashcards page.' })
+      if (Array.isArray(data) && data.length > 0) {
+        addFlashcards(data)
+        toast({ title: `${data.length} flashcards generated!`, description: 'Head to the Flashcards page to review them.' })
+      }
     } catch (e) {
       toast({ title: 'Failed to generate flashcards', description: String(e), variant: 'destructive' })
     }
@@ -146,7 +151,13 @@ export default function UploadPage() {
       })
       const data = await res.json()
       if (data.error) throw new Error(data.error)
-      toast({ title: 'Quiz generated!', description: 'Check the Quizzes page.' })
+      if (Array.isArray(data) && data.length > 0) {
+        const quizTitle = title
+          ? `${title} Quiz`
+          : `AI Quiz — ${new Date().toLocaleDateString()}`
+        addQuiz(quizTitle, 'medium', data)
+        toast({ title: 'Quiz generated!', description: 'Head to the Quizzes page to take it.' })
+      }
     } catch (e) {
       toast({ title: 'Failed to generate quiz', description: String(e), variant: 'destructive' })
     }

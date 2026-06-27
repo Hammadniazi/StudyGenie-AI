@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { Sidebar } from './sidebar'
 import { Header } from './header'
+import { StudyDataProvider } from '@/contexts/study-data-context'
 
 interface AppLayoutProps {
   children: React.ReactNode
@@ -15,27 +16,29 @@ export function AppLayout({ children, userEmail, userName, xp }: AppLayoutProps)
   const [sidebarOpen, setSidebarOpen] = useState(false)
 
   return (
-    <div className="min-h-screen bg-background">
-      {/* Sidebar */}
-      <Sidebar
-        isOpen={sidebarOpen}
-        onClose={() => setSidebarOpen(false)}
-        userEmail={userEmail}
-        userName={userName}
-      />
-
-      {/* Main area — offset for sidebar on large screens */}
-      <div className="lg:ml-[240px] flex flex-col min-h-screen">
-        <Header
-          onMenuClick={() => setSidebarOpen(true)}
+    <StudyDataProvider>
+      <div className="min-h-screen bg-background">
+        {/* Sidebar */}
+        <Sidebar
+          isOpen={sidebarOpen}
+          onClose={() => setSidebarOpen(false)}
           userEmail={userEmail}
           userName={userName}
-          xp={xp}
         />
-        <main className="flex-1 overflow-auto">
-          {children}
-        </main>
+
+        {/* Main area — offset for sidebar on large screens */}
+        <div className="lg:ml-[240px] flex flex-col min-h-screen">
+          <Header
+            onMenuClick={() => setSidebarOpen(true)}
+            userEmail={userEmail}
+            userName={userName}
+            xp={xp}
+          />
+          <main className="flex-1 overflow-auto">
+            {children}
+          </main>
+        </div>
       </div>
-    </div>
+    </StudyDataProvider>
   )
 }

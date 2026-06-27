@@ -2,24 +2,14 @@
 
 import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Search, Heart, HeartOff, Plus, Sparkles, RefreshCw } from 'lucide-react'
+import { Search, Heart, HeartOff, Sparkles, RefreshCw } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
-import { Card, CardContent } from '@/components/ui/card'
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select'
 import { toast } from '@/components/ui/use-toast'
+import { useStudyData } from '@/contexts/study-data-context'
 import type { Flashcard } from '@/types'
-import { v4 as uuidv4 } from 'uuid'
-
-const MOCK_FLASHCARDS: Flashcard[] = [
-  { id: '1', user_id: '', question: 'What is the powerhouse of the cell?', answer: 'The mitochondria. It produces ATP through cellular respiration, providing energy for all cellular processes.', difficulty: 'easy', topic_tag: 'Cell Biology', is_saved: true, created_at: '' },
-  { id: '2', user_id: '', question: 'Describe the process of DNA replication.', answer: 'DNA replication is a semi-conservative process where the double helix unwinds, each strand acts as a template, and DNA polymerase synthesizes new complementary strands using free nucleotides.', difficulty: 'hard', topic_tag: 'Genetics', is_saved: false, created_at: '' },
-  { id: '3', user_id: '', question: 'What is the difference between mitosis and meiosis?', answer: 'Mitosis produces 2 genetically identical diploid cells for growth/repair. Meiosis produces 4 genetically unique haploid cells for sexual reproduction.', difficulty: 'medium', topic_tag: 'Cell Division', is_saved: true, created_at: '' },
-  { id: '4', user_id: '', question: "What is Mendel's Law of Segregation?", answer: "During gamete formation, allele pairs segregate so that each gamete receives only one allele from each pair. This ensures genetic variation in offspring.", difficulty: 'medium', topic_tag: 'Genetics', is_saved: false, created_at: '' },
-  { id: '5', user_id: '', question: 'What is the role of RNA polymerase?', answer: 'RNA polymerase transcribes DNA into RNA by reading the template strand 3\' to 5\' and synthesizing RNA in the 5\' to 3\' direction.', difficulty: 'hard', topic_tag: 'Protein Synthesis', is_saved: false, created_at: '' },
-  { id: '6', user_id: '', question: 'Define osmosis.', answer: 'Osmosis is the passive movement of water molecules through a semi-permeable membrane from an area of lower solute concentration to higher solute concentration.', difficulty: 'easy', topic_tag: 'Cell Biology', is_saved: true, created_at: '' },
-]
 
 const difficultyColors: Record<string, string> = {
   easy: 'success',
@@ -80,20 +70,16 @@ function FlipCard({ card, onToggleSave }: { card: Flashcard; onToggleSave: (id: 
 }
 
 export default function FlashcardsPage() {
-  const [cards, setCards] = useState<Flashcard[]>(MOCK_FLASHCARDS)
+  const { flashcards, addFlashcards, toggleSaveFlashcard } = useStudyData()
   const [search, setSearch] = useState('')
   const [filterDifficulty, setFilterDifficulty] = useState('all')
   const [generating, setGenerating] = useState(false)
 
-  const filtered = cards.filter((c) => {
+  const filtered = flashcards.filter((c) => {
     const matchSearch = c.question.toLowerCase().includes(search.toLowerCase()) || c.topic_tag.toLowerCase().includes(search.toLowerCase())
     const matchDifficulty = filterDifficulty === 'all' || c.difficulty === filterDifficulty
     return matchSearch && matchDifficulty
   })
-
-  function handleToggleSave(id: string) {
-    setCards((prev) => prev.map((c) => c.id === id ? { ...c, is_saved: !c.is_saved } : c))
-  }
 
   async function handleGenerate() {
     setGenerating(true)
@@ -101,22 +87,12 @@ export default function FlashcardsPage() {
       const res = await fetch('/api/flashcards/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ content: 'Generate flashcards about cell biology, genetics, and molecular biology.', count: 5 }),
+        body: JSON.stringify({ content: 'Generate diverse flashcards covering science, history, mathematics, and general knowledge.', count: 5 }),
       })
-      const newCards = await res.json()
-      if (Array.isArray(newCards)) {
-        const formatted: Flashcard[] = newCards.map((c: Partial<Flashcard>) => ({
-          id: uuidv4(),
-          user_id: '',
-          question: c.question ?? '',
-          answer: c.answer ?? '',
-          difficulty: c.difficulty ?? 'medium',
-          topic_tag: c.topic_tag ?? 'General',
-          is_saved: false,
-          created_at: new Date().toISOString(),
-        }))
-        setCards((prev) => [...formatted, ...prev])
-        toast({ title: `${formatted.length} new flashcards generated!` })
+      const data = await res.json()
+      if (Array.isArray(data) && data.length > 0) {
+        addFlashcards(data)
+        toast({ title: `${data.length} new flashcards added!` })
       }
     } catch {
       toast({ title: 'Failed to generate flashcards', variant: 'destructive' })
@@ -152,17 +128,18 @@ export default function FlashcardsPage() {
 
       {/* Stats */}
       <div className="flex gap-4 text-sm text-muted-foreground">
-        <span>{filtered.length} cards</span>
+        <span>{flashcards.length} total</span>
         <span>•</span>
-        <span>{cards.filter((c) => c.is_saved).length} saved</span>
+        <span>{filtered.length} shown</span>
+        <span>•</span>
+        <span>{flashcards.filter((c) => c.is_saved).length} saved</span>
       </div>
 
       {/* Grid */}
       {filtered.length === 0 ? (
         <div className="text-center py-20">
-          <Plus className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
-          <h3 className="text-lg font-semibold mb-2">No flashcards found</h3>
-          <p className="text-muted-foreground mb-4">Generate flashcards from your study material or clear the search filter.</p>
+          <p className="text-lg font-semibold mb-2">No flashcards match your search</p>
+          <p className="text-muted-foreground mb-4">Try a different filter or generate new ones from your study material.</p>
           <Button onClick={handleGenerate} disabled={generating} className="gap-2">
             <Sparkles className="w-4 h-4" />
             Generate Flashcards
@@ -178,7 +155,7 @@ export default function FlashcardsPage() {
                 animate={{ opacity: 1, scale: 1 }}
                 exit={{ opacity: 0, scale: 0.95 }}
               >
-                <FlipCard card={card} onToggleSave={handleToggleSave} />
+                <FlipCard card={card} onToggleSave={toggleSaveFlashcard} />
               </motion.div>
             ))}
           </AnimatePresence>
