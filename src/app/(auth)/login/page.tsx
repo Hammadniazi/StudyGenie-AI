@@ -81,6 +81,7 @@ export default function LoginPage() {
             />
             <button
               type="button"
+              aria-label={showPassword ? 'Hide password' : 'Show password'}
               className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
               onClick={() => setShowPassword(!showPassword)}
             >
@@ -99,9 +100,13 @@ export default function LoginPage() {
             />
             <span className="text-muted-foreground">Remember me</span>
           </label>
-          <Link href="#" className="text-primary hover:underline">
+          <button
+            type="button"
+            className="text-primary hover:underline"
+            onClick={() => {/* TODO: implement password reset flow */}}
+          >
             Forgot password?
-          </Link>
+          </button>
         </div>
 
         {error && (

@@ -181,6 +181,7 @@ export default function QuizzesPage() {
                     <button
                       key={opt}
                       onClick={() => handleAnswer(question.id, opt)}
+                      aria-pressed={answers[question.id] === opt}
                       className={cn(
                         'w-full text-left px-4 py-3 rounded-lg border text-sm transition-all',
                         answers[question.id] === opt

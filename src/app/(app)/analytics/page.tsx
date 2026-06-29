@@ -97,15 +97,17 @@ export default function AnalyticsPage() {
             <CardDescription>Hours studied per week over 6 weeks</CardDescription>
           </CardHeader>
           <CardContent>
-            <ResponsiveContainer width="100%" height={200}>
-              <BarChart data={STUDY_HOURS}>
-                <CartesianGrid strokeDasharray="3 3" stroke={chartTheme.grid} />
-                <XAxis dataKey="week" tick={{ fill: chartTheme.tick, fontSize: 11 }} axisLine={false} tickLine={false} />
-                <YAxis tick={{ fill: chartTheme.tick, fontSize: 11 }} axisLine={false} tickLine={false} />
-                <Tooltip contentStyle={chartTheme.tooltip} />
-                <Bar dataKey="hours" name="Hours" fill="hsl(262 83% 68%)" radius={[4, 4, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
+            <div role="img" aria-label="Bar chart: weekly study hours over 6 weeks, peaking at 20 hours in week 6">
+              <ResponsiveContainer width="100%" height={200}>
+                <BarChart data={STUDY_HOURS}>
+                  <CartesianGrid strokeDasharray="3 3" stroke={chartTheme.grid} />
+                  <XAxis dataKey="week" tick={{ fill: chartTheme.tick, fontSize: 11 }} axisLine={false} tickLine={false} />
+                  <YAxis tick={{ fill: chartTheme.tick, fontSize: 11 }} axisLine={false} tickLine={false} />
+                  <Tooltip contentStyle={chartTheme.tooltip} />
+                  <Bar dataKey="hours" name="Hours" fill="hsl(262 83% 55%)" radius={[4, 4, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
           </CardContent>
         </Card>
 
@@ -119,15 +121,17 @@ export default function AnalyticsPage() {
             <CardDescription>Score progression over recent quizzes</CardDescription>
           </CardHeader>
           <CardContent>
-            <ResponsiveContainer width="100%" height={200}>
-              <LineChart data={QUIZ_ACCURACY}>
-                <CartesianGrid strokeDasharray="3 3" stroke={chartTheme.grid} />
-                <XAxis dataKey="date" tick={{ fill: chartTheme.tick, fontSize: 11 }} axisLine={false} tickLine={false} />
-                <YAxis domain={[0, 100]} tick={{ fill: chartTheme.tick, fontSize: 11 }} axisLine={false} tickLine={false} />
-                <Tooltip contentStyle={chartTheme.tooltip} />
-                <Line type="monotone" dataKey="score" name="Score %" stroke="hsl(142 70% 50%)" strokeWidth={2} dot={{ fill: 'hsl(142 70% 50%)', r: 4 }} />
-              </LineChart>
-            </ResponsiveContainer>
+            <div role="img" aria-label="Line chart: quiz accuracy trend from 62% on Jun 1 to 88% on Jun 18">
+              <ResponsiveContainer width="100%" height={200}>
+                <LineChart data={QUIZ_ACCURACY}>
+                  <CartesianGrid strokeDasharray="3 3" stroke={chartTheme.grid} />
+                  <XAxis dataKey="date" tick={{ fill: chartTheme.tick, fontSize: 11 }} axisLine={false} tickLine={false} />
+                  <YAxis domain={[0, 100]} tick={{ fill: chartTheme.tick, fontSize: 11 }} axisLine={false} tickLine={false} />
+                  <Tooltip contentStyle={chartTheme.tooltip} />
+                  <Line type="monotone" dataKey="score" name="Score %" stroke="hsl(142 70% 50%)" strokeWidth={2} dot={{ fill: 'hsl(142 70% 50%)', r: 4 }} />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
           </CardContent>
         </Card>
       </div>
@@ -142,14 +146,16 @@ export default function AnalyticsPage() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <ResponsiveContainer width="100%" height={220}>
-              <RadarChart data={RADAR_DATA}>
-                <PolarGrid stroke={chartTheme.grid} />
-                <PolarAngleAxis dataKey="topic" tick={{ fill: chartTheme.tick, fontSize: 10 }} />
-                <Radar name="Mastery" dataKey="A" stroke="hsl(262 83% 68%)" fill="hsl(262 83% 68%)" fillOpacity={0.2} />
-                <Tooltip contentStyle={chartTheme.tooltip} />
-              </RadarChart>
-            </ResponsiveContainer>
+            <div role="img" aria-label="Radar chart: topic mastery — Genetics 90%, Cell Biology 85%, Ecology 73%, Biochemistry 65%, Cell Division 62%, Protein Synthesis 41%">
+              <ResponsiveContainer width="100%" height={220}>
+                <RadarChart data={RADAR_DATA}>
+                  <PolarGrid stroke={chartTheme.grid} />
+                  <PolarAngleAxis dataKey="topic" tick={{ fill: chartTheme.tick, fontSize: 10 }} />
+                  <Radar name="Mastery" dataKey="A" stroke="hsl(262 83% 55%)" fill="hsl(262 83% 55%)" fillOpacity={0.2} />
+                  <Tooltip contentStyle={chartTheme.tooltip} />
+                </RadarChart>
+              </ResponsiveContainer>
+            </div>
           </CardContent>
         </Card>
 
@@ -163,17 +169,22 @@ export default function AnalyticsPage() {
             <CardDescription>Last 5 weeks of activity</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-7 gap-1.5">
-              {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((d, i) => (
-                <div key={i} className="text-center text-xs text-muted-foreground pb-1">{d}</div>
-              ))}
-              {STREAK_DAYS.map(({ day, active }) => (
-                <div
-                  key={day}
-                  className={`h-7 rounded ${active ? 'bg-orange-500/70' : 'bg-secondary'} transition-colors`}
-                  title={`Day ${day + 1}: ${active ? 'Studied' : 'Not studied'}`}
-                />
-              ))}
+            <div
+              role="img"
+              aria-label={`Study streak heatmap: ${STREAK_DAYS.filter((d) => d.active).length} out of 35 days active in the last 5 weeks`}
+            >
+              <div className="grid grid-cols-7 gap-1.5" aria-hidden="true">
+                {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((d, i) => (
+                  <div key={i} className="text-center text-xs text-muted-foreground pb-1">{d}</div>
+                ))}
+                {STREAK_DAYS.map(({ day, active }) => (
+                  <div
+                    key={day}
+                    className={`h-7 rounded ${active ? 'bg-orange-500/70' : 'bg-secondary'} transition-colors`}
+                    title={`Day ${day + 1}: ${active ? 'Studied' : 'Not studied'}`}
+                  />
+                ))}
+              </div>
             </div>
             <p className="text-xs text-muted-foreground mt-3">
               {STREAK_DAYS.filter((d) => d.active).length} / 35 days active

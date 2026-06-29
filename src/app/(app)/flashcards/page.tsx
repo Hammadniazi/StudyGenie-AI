@@ -20,11 +20,20 @@ const difficultyColors: Record<string, string> = {
 function FlipCard({ card, onToggleSave }: { card: Flashcard; onToggleSave: (id: string) => void }) {
   const [flipped, setFlipped] = useState(false)
 
+  function handleFlip() {
+    setFlipped((f) => !f)
+  }
+
   return (
     <div
+      role="button"
+      tabIndex={0}
+      aria-pressed={flipped}
+      aria-label={flipped ? `Answer: ${card.answer}` : `Question: ${card.question} — press to reveal answer`}
       className="cursor-pointer"
       style={{ perspective: '1000px' }}
-      onClick={() => setFlipped((f) => !f)}
+      onClick={handleFlip}
+      onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && (e.preventDefault(), handleFlip())}
     >
       <motion.div
         animate={{ rotateY: flipped ? 180 : 0 }}
@@ -42,6 +51,7 @@ function FlipCard({ card, onToggleSave }: { card: Flashcard; onToggleSave: (id: 
             </Badge>
             <button
               onClick={(e) => { e.stopPropagation(); onToggleSave(card.id) }}
+              aria-label={card.is_saved ? 'Unsave card' : 'Save card'}
               className="text-muted-foreground hover:text-red-400 transition-colors"
             >
               {card.is_saved ? <Heart className="w-4 h-4 fill-red-400 text-red-400" /> : <HeartOff className="w-4 h-4" />}

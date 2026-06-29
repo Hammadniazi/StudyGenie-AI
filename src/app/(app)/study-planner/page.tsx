@@ -83,6 +83,8 @@ export default function StudyPlannerPage() {
     return (
       <button
         onClick={() => toggleTask(task.id)}
+        aria-pressed={completed}
+        aria-label={`${completed ? 'Mark incomplete' : 'Mark complete'}: ${task.title}`}
         className={cn(
           'w-full flex items-center gap-3 p-3 rounded-lg border text-left transition-all duration-150',
           TASK_COLORS[task.type],

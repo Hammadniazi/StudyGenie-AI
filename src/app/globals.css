@@ -8,7 +8,7 @@
   --card-foreground: 210 40% 95%;
   --popover: 222 47% 9%;
   --popover-foreground: 210 40% 95%;
-  --primary: 262 83% 68%;
+  --primary: 262 83% 55%;
   --primary-foreground: 0 0% 100%;
   --secondary: 217 33% 17%;
   --secondary-foreground: 210 40% 95%;
@@ -41,7 +41,7 @@
   --muted-foreground: 215 16% 46%;
   --accent: 210 40% 96%;
   --accent-foreground: 222 47% 6%;
-  --destructive: 0 84.2% 60.2%;
+  --destructive: 0 84.2% 48%;
   --destructive-foreground: 0 0% 100%;
   --border: 214 32% 91%;
   --input: 214 32% 91%;
@@ -115,6 +115,7 @@ body {
 }
 
 .gradient-text {
+  color: #a78bfa;
   background: linear-gradient(135deg, #a78bfa 0%, #818cf8 50%, #60a5fa 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
@@ -170,6 +171,18 @@ body {
 .typing-dot:nth-child(1) { animation: typing-dot 1.2s ease-in-out infinite 0s; }
 .typing-dot:nth-child(2) { animation: typing-dot 1.2s ease-in-out infinite 0.2s; }
 .typing-dot:nth-child(3) { animation: typing-dot 1.2s ease-in-out infinite 0.4s; }
+
+/* ── Reduced motion ── */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
 
 /* ── Skeleton shimmer ── */
 .skeleton-shimmer {

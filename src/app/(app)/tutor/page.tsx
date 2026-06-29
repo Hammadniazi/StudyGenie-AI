@@ -131,7 +131,7 @@ export default function TutorPage() {
 
       {/* Messages */}
       <ScrollArea className="flex-1 px-4 py-6">
-        <div className="max-w-3xl mx-auto">
+        <div className="max-w-3xl mx-auto" aria-live="polite" aria-label="Chat messages" aria-relevant="additions">
           <AnimatePresence initial={false}>
             {messages.map((msg) => (
               <motion.div
