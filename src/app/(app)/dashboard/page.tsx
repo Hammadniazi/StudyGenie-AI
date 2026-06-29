@@ -160,7 +160,7 @@ export default function DashboardPage() {
                       contentStyle={{ background: 'hsl(222 47% 9%)', border: '1px solid hsl(217 33% 20%)', borderRadius: '8px', color: 'hsl(210 40% 95%)' }}
                       cursor={{ fill: 'rgba(139,92,246,0.08)' }}
                     />
-                    <Bar dataKey="study_hours" name="Study Hours" fill="hsl(262 83% 68%)" radius={[4, 4, 0, 0]} />
+                    <Bar dataKey="study_hours" name="Study Hours" fill="hsl(262 83% 55%)" radius={[4, 4, 0, 0]} />
                     <Bar dataKey="quiz_score" name="Quiz Score %" fill="hsl(214 100% 60%)" radius={[4, 4, 0, 0]} />
                   </BarChart>
                 </ResponsiveContainer>
@@ -192,7 +192,14 @@ export default function DashboardPage() {
                         <span className="text-foreground">{t.topic}</span>
                         <span className="text-muted-foreground">{t.mastery_percentage}%</span>
                       </div>
-                      <div className="h-1.5 w-full rounded-full bg-secondary overflow-hidden">
+                      <div
+                        role="progressbar"
+                        aria-label={`${t.topic} mastery`}
+                        aria-valuenow={t.mastery_percentage}
+                        aria-valuemin={0}
+                        aria-valuemax={100}
+                        className="h-1.5 w-full rounded-full bg-secondary overflow-hidden"
+                      >
                         <div
                           className={`h-full rounded-full transition-all duration-700 ${getMasteryColor(t.mastery_percentage)}`}
                           style={{ width: `${t.mastery_percentage}%` }}

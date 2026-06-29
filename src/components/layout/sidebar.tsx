@@ -1,5 +1,6 @@
 'use client'
 
+import { useEffect } from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { cn } from '@/lib/utils'
@@ -43,6 +44,14 @@ export function Sidebar({ isOpen, onClose, userEmail, userName }: SidebarProps) 
   const router = useRouter()
   const isGuest = !userEmail
 
+  useEffect(() => {
+    function handleKeyDown(e: KeyboardEvent) {
+      if (e.key === 'Escape' && isOpen) onClose()
+    }
+    document.addEventListener('keydown', handleKeyDown)
+    return () => document.removeEventListener('keydown', handleKeyDown)
+  }, [isOpen, onClose])
+
   async function handleLogout() {
     if (isSupabaseConfigured()) {
       const supabase = createClient()
@@ -80,6 +89,7 @@ export function Sidebar({ isOpen, onClose, userEmail, userName }: SidebarProps) 
           </Link>
           <button
             onClick={onClose}
+            aria-label="Close menu"
             className="lg:hidden text-muted-foreground hover:text-foreground transition-colors"
           >
             <X className="w-5 h-5" />
@@ -87,7 +97,7 @@ export function Sidebar({ isOpen, onClose, userEmail, userName }: SidebarProps) 
         </div>
 
         {/* Navigation */}
-        <nav className="flex-1 overflow-y-auto py-4 px-2 space-y-1">
+        <nav aria-label="Main navigation" className="flex-1 overflow-y-auto py-4 px-2 space-y-1">
           {navLinks.map(({ href, label, icon: Icon }) => {
             const isActive = pathname === href || pathname.startsWith(href + '/')
             return (
