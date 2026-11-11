@@ -1,96 +1,52 @@
 'use client'
 
-import { useState, useEffect } from 'react'
 import { usePathname } from 'next/navigation'
-import { Menu, Bell, Sun, Moon, Zap, User } from 'lucide-react'
+import { Menu, Flame } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { cn } from '@/lib/utils'
+import { ThemeToggle } from '@/components/theme'
+import { useStudyData } from '@/contexts/study-data-context'
+import { navSections } from './sidebar'
 
-const pageTitles: Record<string, string> = {
-  '/dashboard': 'Dashboard',
-  '/tutor': 'AI Tutor',
-  '/upload': 'Upload Material',
-  '/flashcards': 'Flashcards',
-  '/quizzes': 'Quizzes',
-  '/study-planner': 'Study Planner',
-  '/analytics': 'Analytics',
-}
+const titles: Record<string, string> = Object.fromEntries(
+  navSections.flatMap((s) => s.links.map((l) => [l.href, l.label]))
+)
 
 interface HeaderProps {
   onMenuClick: () => void
-  userEmail?: string
-  userName?: string
-  xp?: number
 }
 
-export function Header({ onMenuClick, userEmail, userName, xp = 0 }: HeaderProps) {
+export function Header({ onMenuClick }: HeaderProps) {
   const pathname = usePathname()
-  const [isDark, setIsDark] = useState(true)
-
-  const title = pageTitles[pathname] ?? 'StudyGenie AI'
-
-  useEffect(() => {
-    // Default to dark
-    document.documentElement.classList.add('dark')
-  }, [])
-
-  function toggleTheme() {
-    setIsDark((prev) => {
-      const next = !prev
-      // next=true → dark mode, next=false → light mode
-      document.documentElement.classList.toggle('light', !next)
-      document.documentElement.classList.toggle('dark', next)
-      return next
-    })
-  }
+  const { stats, ready } = useStudyData()
+  const title = titles[pathname] ?? 'StudyGenie'
 
   return (
-    <header className="h-16 border-b border-border glass flex items-center justify-between px-4 gap-4 sticky top-0 z-30">
-      {/* Left: hamburger + title */}
-      <div className="flex items-center gap-3">
+    <header className="sticky top-0 z-20 flex h-[60px] items-center justify-between gap-3 border-b border-border bg-background/95 px-4 supports-[backdrop-filter]:bg-background/85 supports-[backdrop-filter]:backdrop-blur-sm sm:px-6">
+      <div className="flex min-w-0 items-center gap-2">
         <Button
           variant="ghost"
           size="icon"
-          className="lg:hidden"
+          className="-ml-2 lg:hidden"
           onClick={onMenuClick}
           aria-label="Open menu"
         >
-          <Menu className="w-5 h-5" />
+          <Menu aria-hidden="true" />
         </Button>
-        <h1 className="text-lg font-semibold text-foreground">{title}</h1>
+        <h1 className="truncate font-display text-xl font-semibold tracking-tight text-foreground">{title}</h1>
       </div>
 
-      {/* Right: XP, dark mode, notifications, avatar */}
-      <div className="flex items-center gap-2">
-        {/* XP */}
-        <div className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-yellow-500/10 border border-yellow-500/20 text-yellow-400 text-xs font-bold">
-          <Zap className="w-3.5 h-3.5" />
-          {xp.toLocaleString()} XP
-        </div>
-
-        {/* Theme toggle */}
-        <Button variant="ghost" size="icon" onClick={toggleTheme} aria-label="Toggle theme">
-          {isDark ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
-        </Button>
-
-        {/* Notifications */}
-        <Button variant="ghost" size="icon" className="relative" aria-label="Notifications — 1 unread">
-          <Bell className="w-4 h-4" />
-          <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-primary" aria-hidden="true" />
-        </Button>
-
-        {/* Avatar */}
-        <div className={cn(
-          'w-8 h-8 rounded-full bg-primary/20 border border-primary/30 flex items-center justify-center cursor-pointer',
-        )}>
-          {userEmail || userName ? (
-            <span className="text-xs font-bold text-primary">
-              {(userName || userEmail!).charAt(0).toUpperCase()}
-            </span>
-          ) : (
-            <User className="w-4 h-4 text-primary" />
-          )}
-        </div>
+      <div className="flex items-center gap-1">
+        {ready && stats.streak > 0 && (
+          <div
+            className="mr-1 hidden items-center gap-1.5 rounded-md border border-border bg-card px-2.5 py-1.5 text-xs font-medium text-foreground sm:flex"
+            title="Days in a row with study activity"
+          >
+            <Flame className="size-3.5 text-warning" aria-hidden="true" />
+            <span className="tabular">{stats.streak}</span>
+            <span className="text-muted-foreground">day streak</span>
+          </div>
+        )}
+        <ThemeToggle />
       </div>
     </header>
   )

@@ -1,318 +1,333 @@
 'use client'
 
-import { useEffect, useState } from 'react'
 import Link from 'next/link'
+import { formatDistanceToNow } from 'date-fns'
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
 import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-  LineChart,
-  Line,
-} from 'recharts'
-import { motion } from 'framer-motion'
-import {
-  Flame,
-  BookOpen,
-  Target,
-  Trophy,
-  Bot,
-  CreditCard,
-  Zap,
-  TrendingUp,
-  Lightbulb,
-  Clock,
+  FileText,
+  Layers,
+  ListChecks,
+  Percent,
+  CheckCircle2,
+  Circle,
+  ArrowRight,
+  MessagesSquare,
+  CalendarDays,
+  History,
+  BarChart3,
+  type LucideIcon,
 } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
-import { Progress } from '@/components/ui/progress'
-import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
-import type { DashboardStats } from '@/types'
+import { EmptyState } from '@/components/empty-state'
+import { useStudyData, type ActivityType } from '@/contexts/study-data-context'
+import { chartTheme } from '@/lib/chart-theme'
+import { cn } from '@/lib/utils'
 
-const MOCK_STATS: DashboardStats = {
-  total_study_sessions: 24,
-  study_streak: 7,
-  topics_learned: 42,
-  exam_readiness_score: 78,
-  xp_points: 3450,
-  badges: ['First Quiz', '7-Day Streak', 'Flash Master', 'AI Explorer'],
-  topic_mastery: [
-    { id: '1', user_id: '', topic: 'Photosynthesis', mastery_percentage: 85, last_updated: '' },
-    { id: '2', user_id: '', topic: 'Cell Division', mastery_percentage: 62, last_updated: '' },
-    { id: '3', user_id: '', topic: 'DNA Replication', mastery_percentage: 74, last_updated: '' },
-    { id: '4', user_id: '', topic: 'Protein Synthesis', mastery_percentage: 41, last_updated: '' },
-    { id: '5', user_id: '', topic: 'Genetics', mastery_percentage: 90, last_updated: '' },
-  ],
-  weak_areas: ['Protein Synthesis', 'Cell Division'],
-  weekly_progress: [
-    { day: 'Mon', study_hours: 2.5, quiz_score: 72 },
-    { day: 'Tue', study_hours: 1.5, quiz_score: 80 },
-    { day: 'Wed', study_hours: 3, quiz_score: 85 },
-    { day: 'Thu', study_hours: 2, quiz_score: 78 },
-    { day: 'Fri', study_hours: 1, quiz_score: 90 },
-    { day: 'Sat', study_hours: 3.5, quiz_score: 88 },
-    { day: 'Sun', study_hours: 2, quiz_score: 82 },
-  ],
+const activityIcons: Record<ActivityType, LucideIcon> = {
+  material: FileText,
+  flashcards: Layers,
+  quiz: ListChecks,
+  tutor: MessagesSquare,
+  plan: CalendarDays,
+  review: Layers,
 }
 
-const MOCK_INSIGHTS = [
-  'Your quiz accuracy jumped 15% this week — keep reviewing Genetics flashcards daily.',
-  'You have a 7-day streak! Study at least 30 minutes today to maintain it.',
-  'Protein Synthesis is your weakest area at 41% mastery — dedicate tomorrow morning to it.',
-]
-
-const MOCK_ACTIVITY = [
-  { icon: CreditCard, text: 'Completed 20 Flashcards — Biology Ch. 5', time: '2 hours ago', color: 'text-blue-400' },
-  { icon: Trophy, text: 'Scored 88% on Cell Division Quiz', time: '5 hours ago', color: 'text-yellow-400' },
-  { icon: Bot, text: 'AI Tutor session on DNA Replication (45 min)', time: 'Yesterday', color: 'text-purple-400' },
-  { icon: BookOpen, text: 'Uploaded "Biology Chapter 6" material', time: '2 days ago', color: 'text-green-400' },
-]
-
-function getMasteryColor(p: number) {
-  if (p >= 80) return 'bg-green-500'
-  if (p >= 60) return 'bg-yellow-500'
-  if (p >= 40) return 'bg-orange-500'
-  return 'bg-red-500'
+function masteryLevel(p: number) {
+  if (p >= 80) return { label: 'Strong', bar: 'bg-success', text: 'text-success' }
+  if (p >= 60) return { label: 'Getting there', bar: 'bg-warning', text: 'text-warning' }
+  return { label: 'Needs work', bar: 'bg-danger', text: 'text-danger' }
 }
 
-const fadeUp = { hidden: { opacity: 0, y: 20 }, visible: { opacity: 1, y: 0 } }
-const stagger = { visible: { transition: { staggerChildren: 0.08 } } }
+const container = 'mx-auto max-w-6xl px-4 py-6 sm:px-6 lg:py-8'
 
 export default function DashboardPage() {
-  const [stats, setStats] = useState<DashboardStats | null>(null)
-  const [insights, setInsights] = useState<string[]>([])
-  const [loading, setLoading] = useState(true)
+  const { ready, stats, activity } = useStudyData()
 
-  useEffect(() => {
-    // Simulate fetch / use mock data
-    const timer = setTimeout(() => {
-      setStats(MOCK_STATS)
-      setInsights(MOCK_INSIGHTS)
-      setLoading(false)
-    }, 800)
-    return () => clearTimeout(timer)
-  }, [])
+  if (!ready) {
+    return (
+      <div className={cn(container, 'space-y-6')}>
+        <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <Skeleton key={i} className="h-24" />
+          ))}
+        </div>
+        <div className="grid gap-6 lg:grid-cols-3">
+          <Skeleton className="h-64 lg:col-span-2" />
+          <Skeleton className="h-64" />
+        </div>
+      </div>
+    )
+  }
 
-  const statCards = stats
-    ? [
-        { label: 'Study Streak', value: `${stats.study_streak} days`, icon: Flame, color: 'text-orange-400', bg: 'bg-orange-500/10 border-orange-500/20' },
-        { label: 'Topics Learned', value: stats.topics_learned, icon: BookOpen, color: 'text-blue-400', bg: 'bg-blue-500/10 border-blue-500/20' },
-        { label: 'XP Points', value: stats.xp_points.toLocaleString(), icon: Zap, color: 'text-yellow-400', bg: 'bg-yellow-500/10 border-yellow-500/20' },
-        { label: 'Exam Readiness', value: `${stats.exam_readiness_score}%`, icon: Target, color: 'text-green-400', bg: 'bg-green-500/10 border-green-500/20' },
-      ]
-    : []
+  if (!stats.hasOwnData) return <GettingStarted />
+
+  const statTiles = [
+    { label: 'Materials', value: String(stats.materialsCount), icon: FileText },
+    { label: 'Flashcards', value: String(stats.ownFlashcardsCount), icon: Layers },
+    { label: 'Quizzes taken', value: String(stats.quizzesTaken), icon: ListChecks },
+    { label: 'Average score', value: stats.averageScore === null ? '—' : `${stats.averageScore}%`, icon: Percent },
+  ]
+
+  // One clear next step, derived from what the user has actually done.
+  const next = stats.weakTopics.length
+    ? {
+        title: `Review ${stats.weakTopics[0]}`,
+        body: `It's your lowest-scoring topic so far. Go through the flashcards, then retake a quiz.`,
+        href: '/flashcards',
+        cta: 'Review flashcards',
+      }
+    : stats.quizzesTaken === 0
+      ? {
+          title: 'Test yourself',
+          body: 'You have material and cards ready. A quick quiz shows which topics have stuck.',
+          href: '/quizzes',
+          cta: 'Take a quiz',
+        }
+      : {
+          title: 'Add the next chapter',
+          body: 'No weak topics right now. Add more material to keep going.',
+          href: '/upload',
+          cta: 'Add material',
+        }
+
+  const weekTotal = stats.last7Days.reduce((s, d) => s + d.actions, 0)
 
   return (
-    <div className="p-6 max-w-7xl mx-auto space-y-6">
-      {/* Stat cards */}
-      <motion.div initial="hidden" animate="visible" variants={stagger} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {loading
-          ? Array.from({ length: 4 }).map((_, i) => (
-              <Card key={i} className="glass border-border">
-                <CardContent className="p-6">
-                  <Skeleton className="h-4 w-24 mb-3" />
-                  <Skeleton className="h-8 w-16" />
-                </CardContent>
-              </Card>
-            ))
-          : statCards.map(({ label, value, icon: Icon, color, bg }) => (
-              <motion.div key={label} variants={fadeUp}>
-                <Card className="glass border-border hover:border-primary/20 transition-colors">
-                  <CardContent className="p-6">
-                    <div className="flex items-center justify-between mb-3">
-                      <p className="text-sm text-muted-foreground">{label}</p>
-                      <div className={`p-2 rounded-lg border ${bg}`}>
-                        <Icon className={`w-4 h-4 ${color}`} />
-                      </div>
-                    </div>
-                    <p className={`text-3xl font-bold ${color}`}>{value}</p>
-                  </CardContent>
-                </Card>
-              </motion.div>
-            ))}
-      </motion.div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Weekly progress chart */}
-        <motion.div initial="hidden" animate="visible" variants={fadeUp} className="lg:col-span-2">
-          <Card className="glass border-border h-full">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-base">
-                <TrendingUp className="w-4 h-4 text-primary" />
-                Weekly Progress
-              </CardTitle>
-              <CardDescription>Study hours and quiz scores this week</CardDescription>
-            </CardHeader>
-            <CardContent>
-              {loading ? (
-                <Skeleton className="h-48 w-full" />
-              ) : (
-                <ResponsiveContainer width="100%" height={200}>
-                  <BarChart data={stats?.weekly_progress ?? []} barGap={4}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="hsl(217 33% 20%)" />
-                    <XAxis dataKey="day" tick={{ fill: 'hsl(215 20% 65%)', fontSize: 12 }} axisLine={false} tickLine={false} />
-                    <YAxis tick={{ fill: 'hsl(215 20% 65%)', fontSize: 12 }} axisLine={false} tickLine={false} />
-                    <Tooltip
-                      contentStyle={{ background: 'hsl(222 47% 9%)', border: '1px solid hsl(217 33% 20%)', borderRadius: '8px', color: 'hsl(210 40% 95%)' }}
-                      cursor={{ fill: 'rgba(139,92,246,0.08)' }}
-                    />
-                    <Bar dataKey="study_hours" name="Study Hours" fill="hsl(262 83% 55%)" radius={[4, 4, 0, 0]} />
-                    <Bar dataKey="quiz_score" name="Quiz Score %" fill="hsl(214 100% 60%)" radius={[4, 4, 0, 0]} />
-                  </BarChart>
-                </ResponsiveContainer>
-              )}
-            </CardContent>
+    <div className={cn(container, 'space-y-6')}>
+      {/* Stats */}
+      <section aria-label="Summary" className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+        {statTiles.map(({ label, value, icon: Icon }) => (
+          <Card key={label} className="p-4">
+            <div className="flex items-center justify-between">
+              <p className="text-sm text-muted-foreground">{label}</p>
+              <Icon className="size-4 text-muted-foreground" aria-hidden="true" />
+            </div>
+            <p className="tabular mt-2 font-display text-3xl font-semibold tracking-tight text-foreground">{value}</p>
           </Card>
-        </motion.div>
+        ))}
+      </section>
 
-        {/* Topic Mastery */}
-        <motion.div initial="hidden" animate="visible" variants={fadeUp}>
-          <Card className="glass border-border h-full">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-base">
-                <Target className="w-4 h-4 text-primary" />
-                Topic Mastery
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {loading
-                ? Array.from({ length: 5 }).map((_, i) => (
-                    <div key={i} className="space-y-1">
-                      <Skeleton className="h-3 w-32" />
-                      <Skeleton className="h-2 w-full" />
-                    </div>
-                  ))
-                : stats?.topic_mastery.map((t) => (
-                    <div key={t.topic}>
-                      <div className="flex justify-between text-sm mb-1">
-                        <span className="text-foreground">{t.topic}</span>
-                        <span className="text-muted-foreground">{t.mastery_percentage}%</span>
+      <div className="grid gap-6 lg:grid-cols-3">
+        {/* Next step */}
+        <Card className="lg:col-span-2">
+          <CardHeader>
+            <CardDescription className="font-mono text-[11px] uppercase tracking-wider">
+              Pick up where you left off
+            </CardDescription>
+            <CardTitle className="font-display text-2xl font-semibold tracking-tight">{next.title}</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="max-w-prose text-sm leading-relaxed text-muted-foreground">{next.body}</p>
+            {stats.weakTopics.length > 1 && (
+              <p className="mt-3 text-sm text-foreground">
+                <span className="font-medium">Focus next:</span>{' '}
+                <span className="text-muted-foreground">{stats.weakTopics.join(', ')}</span>
+              </p>
+            )}
+            <Button asChild className="mt-5">
+              <Link href={next.href}>
+                {next.cta}
+                <ArrowRight aria-hidden="true" />
+              </Link>
+            </Button>
+          </CardContent>
+        </Card>
+
+        {/* Topic mastery */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Topic mastery</CardTitle>
+            <CardDescription>From your quiz answers</CardDescription>
+          </CardHeader>
+          <CardContent>
+            {stats.topicMastery.length === 0 ? (
+              <EmptyState
+                icon={ListChecks}
+                title="No quiz results yet"
+                description="Take a quiz to see how well each topic has stuck."
+                action={
+                  <Button asChild size="sm" variant="outline">
+                    <Link href="/quizzes">Take a quiz</Link>
+                  </Button>
+                }
+                className="py-6"
+              />
+            ) : (
+              <ul className="space-y-4">
+                {stats.topicMastery.slice(0, 6).map((t) => {
+                  const level = masteryLevel(t.mastery)
+                  return (
+                    <li key={t.topic}>
+                      <div className="mb-1.5 flex items-baseline justify-between gap-2 text-sm">
+                        <span className="truncate text-foreground">{t.topic}</span>
+                        <span className="shrink-0 text-xs">
+                          <span className={cn('font-medium', level.text)}>{level.label}</span>
+                          <span className="tabular ml-1.5 text-muted-foreground">{t.mastery}%</span>
+                        </span>
                       </div>
                       <div
                         role="progressbar"
                         aria-label={`${t.topic} mastery`}
-                        aria-valuenow={t.mastery_percentage}
+                        aria-valuenow={t.mastery}
                         aria-valuemin={0}
                         aria-valuemax={100}
-                        className="h-1.5 w-full rounded-full bg-secondary overflow-hidden"
+                        aria-valuetext={`${t.mastery}% — ${level.label}`}
+                        className="h-1.5 w-full overflow-hidden rounded-full bg-muted"
                       >
-                        <div
-                          className={`h-full rounded-full transition-all duration-700 ${getMasteryColor(t.mastery_percentage)}`}
-                          style={{ width: `${t.mastery_percentage}%` }}
-                        />
+                        <div className={cn('h-full rounded-full', level.bar)} style={{ width: `${t.mastery}%` }} />
                       </div>
-                    </div>
-                  ))}
-            </CardContent>
-          </Card>
-        </motion.div>
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* AI Insights */}
-        <motion.div initial="hidden" animate="visible" variants={fadeUp} className="lg:col-span-2">
-          <Card className="glass border-border">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-base">
-                <Lightbulb className="w-4 h-4 text-yellow-400" />
-                AI Insights
-              </CardTitle>
-              <CardDescription>Personalized recommendations based on your progress</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              {loading
-                ? Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-12 w-full" />)
-                : insights.map((insight, i) => (
-                    <div key={i} className="flex gap-3 p-3 rounded-lg bg-secondary/50 border border-border">
-                      <div className="w-6 h-6 rounded-full bg-primary/20 border border-primary/30 flex items-center justify-center shrink-0 mt-0.5">
-                        <span className="text-xs font-bold text-primary">{i + 1}</span>
-                      </div>
-                      <p className="text-sm text-foreground leading-relaxed">{insight}</p>
-                    </div>
-                  ))}
-            </CardContent>
-          </Card>
-        </motion.div>
-
-        {/* Quick Actions */}
-        <motion.div initial="hidden" animate="visible" variants={fadeUp} className="space-y-4">
-          <Card className="glass border-border">
-            <CardHeader>
-              <CardTitle className="text-base">Quick Actions</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-2">
-              <Link href="/tutor">
-                <Button className="w-full justify-start gap-2" variant="outline">
-                  <Bot className="w-4 h-4 text-purple-400" />
-                  Start AI Tutor
-                </Button>
-              </Link>
-              <Link href="/quizzes">
-                <Button className="w-full justify-start gap-2" variant="outline">
-                  <Trophy className="w-4 h-4 text-yellow-400" />
-                  Take Quiz
-                </Button>
-              </Link>
-              <Link href="/flashcards">
-                <Button className="w-full justify-start gap-2" variant="outline">
-                  <CreditCard className="w-4 h-4 text-blue-400" />
-                  Review Flashcards
-                </Button>
-              </Link>
-            </CardContent>
-          </Card>
-
-          {/* Badges */}
-          <Card className="glass border-border">
-            <CardHeader>
-              <CardTitle className="text-base flex items-center gap-2">
-                <Trophy className="w-4 h-4 text-yellow-400" />
-                Badges Earned
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              {loading ? (
-                <Skeleton className="h-16 w-full" />
-              ) : (
-                <div className="flex flex-wrap gap-2">
-                  {stats?.badges.map((badge) => (
-                    <Badge key={badge} variant="secondary" className="text-xs">
-                      {badge}
-                    </Badge>
-                  ))}
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </motion.div>
-      </div>
-
-      {/* Recent Activity */}
-      <motion.div initial="hidden" animate="visible" variants={fadeUp}>
-        <Card className="glass border-border">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-base">
-              <Clock className="w-4 h-4 text-primary" />
-              Recent Activity
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            {loading
-              ? Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-10 w-full" />)
-              : MOCK_ACTIVITY.map(({ icon: Icon, text, time, color }, i) => (
-                  <div key={i} className="flex items-center gap-3 p-3 rounded-lg bg-secondary/30 border border-border hover:border-primary/20 transition-colors">
-                    <Icon className={`w-4 h-4 shrink-0 ${color}`} />
-                    <p className="text-sm text-foreground flex-1">{text}</p>
-                    <span className="text-xs text-muted-foreground whitespace-nowrap">{time}</span>
-                  </div>
-                ))}
+                    </li>
+                  )
+                })}
+              </ul>
+            )}
           </CardContent>
         </Card>
-      </motion.div>
+      </div>
+
+      <div className="grid gap-6 lg:grid-cols-3">
+        {/* Activity chart */}
+        <Card className="lg:col-span-2">
+          <CardHeader>
+            <CardTitle>Last 7 days</CardTitle>
+            <CardDescription>Study actions per day</CardDescription>
+          </CardHeader>
+          <CardContent>
+            {weekTotal === 0 ? (
+              <EmptyState
+                icon={BarChart3}
+                title="Nothing this week yet"
+                description="Adding material, making cards and taking quizzes all count."
+                className="py-8"
+              />
+            ) : (
+              <div
+                role="img"
+                aria-label={`Bar chart of study actions over the last 7 days: ${stats.last7Days
+                  .map((d) => `${d.label} ${d.actions}`)
+                  .join(', ')}`}
+              >
+                <ResponsiveContainer width="100%" height={200}>
+                  <BarChart data={stats.last7Days} margin={{ top: 4, right: 4, left: -20, bottom: 0 }}>
+                    <CartesianGrid vertical={false} stroke={chartTheme.grid} />
+                    <XAxis dataKey="label" tick={chartTheme.tick} axisLine={false} tickLine={false} />
+                    <YAxis allowDecimals={false} tick={chartTheme.tick} axisLine={false} tickLine={false} />
+                    <Tooltip
+                      contentStyle={chartTheme.tooltip.contentStyle}
+                      labelStyle={chartTheme.tooltip.labelStyle}
+                      itemStyle={chartTheme.tooltip.itemStyle}
+                      cursor={chartTheme.tooltip.cursor}
+                    />
+                    <Bar dataKey="actions" name="Actions" fill={chartTheme.series[0]} radius={[3, 3, 0, 0]} maxBarSize={36} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Recent activity */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Recent activity</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {activity.length === 0 ? (
+              <EmptyState icon={History} title="No activity yet" className="py-6" />
+            ) : (
+              <ul className="divide-y divide-border">
+                {activity.slice(0, 6).map((a) => {
+                  const Icon = activityIcons[a.type] ?? History
+                  return (
+                    <li key={a.id} className="flex items-start gap-3 py-2.5 first:pt-0 last:pb-0">
+                      <Icon className="mt-0.5 size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm leading-snug text-foreground [overflow-wrap:anywhere]">{a.text}</p>
+                        <p className="mt-0.5 text-xs text-muted-foreground">
+                          <time dateTime={a.at}>{formatDistanceToNow(new Date(a.at), { addSuffix: true })}</time>
+                        </p>
+                      </div>
+                    </li>
+                  )
+                })}
+              </ul>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+    </div>
+  )
+}
+
+function GettingStarted() {
+  const { stats, flashcards } = useStudyData()
+  const reviewedOrMade = stats.ownFlashcardsCount > 0
+
+  const steps = [
+    {
+      title: 'Add your material',
+      body: 'Upload a PDF or text file, or paste your notes. You get a summary, key terms and facts.',
+      href: '/upload',
+      cta: 'Add material',
+      done: stats.materialsCount > 0,
+    },
+    {
+      title: 'Review flashcards',
+      body:
+        flashcards.length > 0
+          ? 'Make cards from your material. There are a few example cards to try first.'
+          : 'Make cards from your material and flip through them.',
+      href: '/flashcards',
+      cta: 'Open flashcards',
+      done: reviewedOrMade,
+    },
+    {
+      title: 'Take a quiz',
+      body: 'Check what has stuck. Your scores feed topic mastery and progress.',
+      href: '/quizzes',
+      cta: 'Open quizzes',
+      done: stats.quizzesTaken > 0,
+    },
+  ]
+
+  return (
+    <div className={cn(container, 'max-w-3xl')}>
+      <h2 className="font-display text-3xl font-semibold tracking-tight text-foreground sm:text-4xl">
+        Start with your <span className="marker">notes</span>
+      </h2>
+      <p className="mt-3 max-w-prose text-muted-foreground">
+        Add a chapter, lecture slides or a page of notes. StudyGenie turns it into a summary, flashcards and a
+        quiz. This page fills in as you study.
+      </p>
+
+      <ol className="mt-8 space-y-3">
+        {steps.map((s, i) => (
+          <li key={s.title}>
+            <Card className="flex flex-col gap-4 p-4 sm:flex-row sm:items-center sm:p-5">
+              <div className="flex flex-1 items-start gap-3">
+                {s.done ? (
+                  <CheckCircle2 className="mt-0.5 size-5 shrink-0 text-success" aria-hidden="true" />
+                ) : (
+                  <Circle className="mt-0.5 size-5 shrink-0 text-border-strong" aria-hidden="true" />
+                )}
+                <div>
+                  <p className="font-medium text-foreground">
+                    <span className="tabular mr-1.5 font-mono text-xs text-muted-foreground">0{i + 1}</span>
+                    {s.title}
+                    <span className="sr-only">{s.done ? ' (done)' : ' (not done yet)'}</span>
+                  </p>
+                  <p className="mt-1 text-sm text-muted-foreground">{s.body}</p>
+                </div>
+              </div>
+              <Button asChild variant={i === 0 && !s.done ? 'default' : 'outline'} size="sm" className="shrink-0 self-start sm:self-center">
+                <Link href={s.href}>{s.done ? 'Open' : s.cta}</Link>
+              </Button>
+            </Card>
+          </li>
+        ))}
+      </ol>
     </div>
   )
 }
