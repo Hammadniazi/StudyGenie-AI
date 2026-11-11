@@ -9,32 +9,23 @@ interface AppLayoutProps {
   children: React.ReactNode
   userEmail?: string
   userName?: string
-  xp?: number
 }
 
-export function AppLayout({ children, userEmail, userName, xp }: AppLayoutProps) {
+export function AppLayout({ children, userEmail, userName }: AppLayoutProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false)
 
   return (
     <StudyDataProvider>
-      <div className="min-h-screen bg-background">
-        {/* Sidebar */}
+      <div className="min-h-dvh bg-background">
         <Sidebar
           isOpen={sidebarOpen}
           onClose={() => setSidebarOpen(false)}
           userEmail={userEmail}
           userName={userName}
         />
-
-        {/* Main area — offset for sidebar on large screens */}
-        <div className="lg:ml-[240px] flex flex-col min-h-screen">
-          <Header
-            onMenuClick={() => setSidebarOpen(true)}
-            userEmail={userEmail}
-            userName={userName}
-            xp={xp}
-          />
-          <main id="main-content" className="flex-1 overflow-auto">
+        <div className="flex min-h-dvh flex-col lg:ml-[240px]">
+          <Header onMenuClick={() => setSidebarOpen(true)} />
+          <main id="main-content" tabIndex={-1} className="flex-1 focus:outline-none">
             {children}
           </main>
         </div>

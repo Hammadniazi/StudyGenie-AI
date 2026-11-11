@@ -1,244 +1,365 @@
 'use client'
 
+import Link from 'next/link'
+import { format } from 'date-fns'
 import {
-  BarChart, Bar, LineChart, Line, RadarChart, Radar, PolarGrid, PolarAngleAxis,
-  XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
+  LineChart,
+  Line,
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
+  ResponsiveContainer,
+  Cell,
 } from 'recharts'
-import { BarChart3, Trophy, Flame, Target, TrendingUp, AlertTriangle, BookOpen } from 'lucide-react'
+import {
+  Flame,
+  ListChecks,
+  Percent,
+  Layers,
+  FileText,
+  Award,
+  CalendarCheck,
+  Target,
+  LineChart as LineChartIcon,
+  Lock,
+  CheckCircle2,
+  type LucideIcon,
+} from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
-import { Progress } from '@/components/ui/progress'
+import { Button } from '@/components/ui/button'
+import { Skeleton } from '@/components/ui/skeleton'
+import { EmptyState } from '@/components/empty-state'
+import { useStudyData } from '@/contexts/study-data-context'
+import { chartTheme } from '@/lib/chart-theme'
+import { cn } from '@/lib/utils'
 
-const STUDY_HOURS = [
-  { week: 'Week 1', hours: 12 },
-  { week: 'Week 2', hours: 15 },
-  { week: 'Week 3', hours: 10 },
-  { week: 'Week 4', hours: 18 },
-  { week: 'Week 5', hours: 14 },
-  { week: 'Week 6', hours: 20 },
-]
+const container = 'mx-auto max-w-6xl px-4 py-6 sm:px-6 lg:py-8'
 
-const QUIZ_ACCURACY = [
-  { date: 'Jun 1', score: 62 },
-  { date: 'Jun 5', score: 70 },
-  { date: 'Jun 8', score: 68 },
-  { date: 'Jun 12', score: 78 },
-  { date: 'Jun 15', score: 82 },
-  { date: 'Jun 18', score: 88 },
-]
+const dayKey = (d: Date) =>
+  `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
 
-const RADAR_DATA = [
-  { topic: 'Cell Biology', A: 85 },
-  { topic: 'Genetics', A: 90 },
-  { topic: 'Biochemistry', A: 65 },
-  { topic: 'Protein Synthesis', A: 41 },
-  { topic: 'Cell Division', A: 62 },
-  { topic: 'Ecology', A: 73 },
-]
-
-const STREAK_DAYS = Array.from({ length: 35 }, (_, i) => ({
-  day: i,
-  active: [0,1,2,4,5,6,7,8,10,11,12,13,14,15,16,17,18,19,21,22,23,24,25,26,27,28,29,30,31,32,33,34].includes(i),
-}))
-
-const BADGES = [
-  { name: 'First Quiz', icon: '🏆', desc: 'Completed your first quiz' },
-  { name: '7-Day Streak', icon: '🔥', desc: 'Studied 7 days in a row' },
-  { name: 'Flash Master', icon: '🃏', desc: 'Reviewed 100 flashcards' },
-  { name: 'AI Explorer', icon: '🤖', desc: 'Had 10 AI tutor sessions' },
-  { name: 'High Scorer', icon: '⭐', desc: 'Scored 90%+ on a quiz' },
-  { name: 'Bookworm', icon: '📚', desc: 'Uploaded 5 study materials' },
-]
-
-const WEAK_AREAS = [
-  { topic: 'Protein Synthesis', mastery: 41, recommendation: 'Review Chapter 7 and generate new flashcards' },
-  { topic: 'Cell Division', mastery: 62, recommendation: 'Take the mitosis/meiosis quiz again' },
-  { topic: 'Biochemistry', mastery: 65, recommendation: 'Use AI tutor to practice enzyme kinetics' },
-]
-
-const chartTheme = {
-  grid: 'hsl(217 33% 20%)',
-  tick: 'hsl(215 20% 65%)',
-  tooltip: { background: 'hsl(222 47% 9%)', border: '1px solid hsl(217 33% 20%)', borderRadius: '8px', color: 'hsl(210 40% 95%)' },
+function masteryColor(p: number) {
+  if (p >= 80) return 'var(--success)'
+  if (p >= 60) return 'var(--warning)'
+  return 'var(--danger)'
 }
 
+// Heatmap intensity steps (0 = none). Uses the primary token at increasing strength.
+const heatClasses = ['bg-muted', 'bg-primary/25', 'bg-primary/50', 'bg-primary/75', 'bg-primary']
+const heatLevel = (n: number) => (n === 0 ? 0 : n === 1 ? 1 : n <= 3 ? 2 : n <= 5 ? 3 : 4)
+
 export default function AnalyticsPage() {
+  const { ready, stats, quizAttempts, activity } = useStudyData()
+
+  if (!ready) {
+    return (
+      <div className={cn(container, 'space-y-6')}>
+        <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <Skeleton key={i} className="h-24" />
+          ))}
+        </div>
+        <div className="grid gap-6 lg:grid-cols-2">
+          <Skeleton className="h-72" />
+          <Skeleton className="h-72" />
+        </div>
+      </div>
+    )
+  }
+
+  if (!stats.hasOwnData) {
+    return (
+      <div className={container}>
+        <EmptyState
+          icon={LineChartIcon}
+          title="No progress to show yet"
+          description="Add some material, make flashcards and take a quiz. Your scores, topic mastery and study days will appear here."
+          action={
+            <Button asChild>
+              <Link href="/upload">Add material</Link>
+            </Button>
+          }
+          className="py-16"
+        />
+      </div>
+    )
+  }
+
+  // ── Derived data ──
+  const scoreSeries = [...quizAttempts]
+    .reverse()
+    .map((a, i) => ({ attempt: `#${i + 1}`, date: format(new Date(a.completedAt), 'MMM d'), score: a.score, title: a.quizTitle }))
+
+  const bestScore = quizAttempts.reduce((m, a) => Math.max(m, a.score), 0)
+
+  const counts = new Map<string, number>()
+  for (const a of activity) {
+    const k = dayKey(new Date(a.at))
+    counts.set(k, (counts.get(k) ?? 0) + 1)
+  }
+  // 5 full weeks ending this week (Mon–Sun columns).
+  const today = new Date()
+  const start = new Date(today)
+  const weekday = (today.getDay() + 6) % 7 // Mon = 0
+  start.setDate(today.getDate() - weekday - 28)
+  const heatDays = Array.from({ length: 35 }, (_, i) => {
+    const d = new Date(start)
+    d.setDate(start.getDate() + i)
+    const n = counts.get(dayKey(d)) ?? 0
+    return { date: d, count: n, future: d > today }
+  })
+  const activeDays = heatDays.filter((d) => d.count > 0).length
+
+  const tiles = [
+    { label: 'Current streak', value: `${stats.streak} ${stats.streak === 1 ? 'day' : 'days'}`, icon: Flame },
+    { label: 'Quizzes taken', value: String(stats.quizzesTaken), icon: ListChecks },
+    { label: 'Average score', value: stats.averageScore === null ? '—' : `${stats.averageScore}%`, icon: Percent },
+    { label: 'Cards made', value: String(stats.ownFlashcardsCount), icon: Layers },
+  ]
+
+  const milestones: Array<{ name: string; desc: string; icon: LucideIcon; done: boolean }> = [
+    { name: 'First quiz', desc: 'Finish a quiz', icon: ListChecks, done: stats.quizzesTaken >= 1 },
+    { name: '3-day streak', desc: 'Study 3 days in a row', icon: Flame, done: stats.streak >= 3 },
+    { name: '7-day streak', desc: 'Study 7 days in a row', icon: CalendarCheck, done: stats.streak >= 7 },
+    { name: '50 flashcards', desc: 'Make 50 cards', icon: Layers, done: stats.ownFlashcardsCount >= 50 },
+    { name: '5 materials', desc: 'Add 5 study materials', icon: FileText, done: stats.materialsCount >= 5 },
+    { name: 'Top marks', desc: 'Score 90% or more on a quiz', icon: Award, done: bestScore >= 90 },
+  ]
+
   return (
-    <div className="p-6 max-w-7xl mx-auto space-y-6">
-      {/* Summary cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        {[
-          { label: 'Study Hours', value: '89h', icon: BookOpen, color: 'text-blue-400', sub: 'Total this month' },
-          { label: 'Quiz Average', value: '78%', icon: Trophy, color: 'text-yellow-400', sub: '+8% from last month' },
-          { label: 'Current Streak', value: '7 days', icon: Flame, color: 'text-orange-400', sub: 'Personal best: 12' },
-          { label: 'Topics Mastered', value: '3 / 6', icon: Target, color: 'text-green-400', sub: '50% overall' },
-        ].map(({ label, value, icon: Icon, color, sub }) => (
-          <Card key={label} className="glass border-border">
-            <CardContent className="p-5">
-              <div className="flex items-center justify-between mb-2">
-                <p className="text-xs text-muted-foreground">{label}</p>
-                <Icon className={`w-4 h-4 ${color}`} />
-              </div>
-              <p className={`text-2xl font-bold ${color}`}>{value}</p>
-              <p className="text-xs text-muted-foreground mt-1">{sub}</p>
-            </CardContent>
+    <div className={cn(container, 'space-y-6')}>
+      <section aria-label="Summary" className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+        {tiles.map(({ label, value, icon: Icon }) => (
+          <Card key={label} className="p-4">
+            <div className="flex items-center justify-between">
+              <p className="text-sm text-muted-foreground">{label}</p>
+              <Icon className="size-4 text-muted-foreground" aria-hidden="true" />
+            </div>
+            <p className="tabular mt-2 font-display text-3xl font-semibold tracking-tight text-foreground">{value}</p>
           </Card>
         ))}
+      </section>
+
+      <div className="grid gap-6 lg:grid-cols-2">
+        {/* Quiz scores */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Quiz scores</CardTitle>
+            <CardDescription>Each attempt, oldest to newest</CardDescription>
+          </CardHeader>
+          <CardContent>
+            {scoreSeries.length === 0 ? (
+              <EmptyState
+                icon={ListChecks}
+                title="No quiz attempts yet"
+                description="Example quizzes don't count. Generate one from your material."
+                action={
+                  <Button asChild size="sm" variant="outline">
+                    <Link href="/quizzes">Go to quizzes</Link>
+                  </Button>
+                }
+                className="py-8"
+              />
+            ) : (
+              <div
+                role="img"
+                aria-label={`Line chart of quiz scores across ${scoreSeries.length} attempts: ${scoreSeries
+                  .map((s) => `${s.attempt} ${s.score}%`)
+                  .join(', ')}`}
+              >
+                <ResponsiveContainer width="100%" height={240}>
+                  <LineChart data={scoreSeries} margin={{ top: 8, right: 8, left: -16, bottom: 0 }}>
+                    <CartesianGrid vertical={false} stroke={chartTheme.grid} />
+                    <XAxis dataKey="attempt" tick={chartTheme.tick} axisLine={false} tickLine={false} />
+                    <YAxis domain={[0, 100]} unit="%" tick={chartTheme.tick} axisLine={false} tickLine={false} />
+                    <Tooltip
+                      contentStyle={chartTheme.tooltip.contentStyle}
+                      labelStyle={chartTheme.tooltip.labelStyle}
+                      itemStyle={chartTheme.tooltip.itemStyle}
+                      labelFormatter={(_, payload) => {
+                        const p = payload?.[0]?.payload as (typeof scoreSeries)[number] | undefined
+                        return p ? `${p.title} · ${p.date}` : ''
+                      }}
+                      formatter={(v) => [`${v}%`, 'Score']}
+                    />
+                    <Legend wrapperStyle={{ fontSize: 12, color: 'var(--muted-foreground)' }} />
+                    <Line
+                      type="monotone"
+                      dataKey="score"
+                      name="Score"
+                      stroke={chartTheme.series[0]}
+                      strokeWidth={2}
+                      dot={{ r: 3.5, fill: chartTheme.series[0], strokeWidth: 0 }}
+                      activeDot={{ r: 5 }}
+                    />
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Topic mastery */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Topic mastery</CardTitle>
+            <CardDescription>Share of questions answered correctly, per topic</CardDescription>
+          </CardHeader>
+          <CardContent>
+            {stats.topicMastery.length === 0 ? (
+              <EmptyState
+                icon={Target}
+                title="No topics scored yet"
+                description="Topic mastery comes from quiz answers."
+                className="py-8"
+              />
+            ) : (
+              <>
+                <div
+                  role="img"
+                  aria-label={`Bar chart of topic mastery: ${stats.topicMastery
+                    .map((t) => `${t.topic} ${t.mastery}%`)
+                    .join(', ')}`}
+                >
+                  <ResponsiveContainer width="100%" height={Math.max(160, stats.topicMastery.length * 36 + 24)}>
+                    <BarChart
+                      data={stats.topicMastery}
+                      layout="vertical"
+                      margin={{ top: 0, right: 12, left: 0, bottom: 0 }}
+                    >
+                      <CartesianGrid horizontal={false} stroke={chartTheme.grid} />
+                      <XAxis type="number" domain={[0, 100]} unit="%" tick={chartTheme.tick} axisLine={false} tickLine={false} />
+                      <YAxis
+                        type="category"
+                        dataKey="topic"
+                        width={120}
+                        tick={chartTheme.tick}
+                        axisLine={false}
+                        tickLine={false}
+                      />
+                      <Tooltip
+                        contentStyle={chartTheme.tooltip.contentStyle}
+                        labelStyle={chartTheme.tooltip.labelStyle}
+                        itemStyle={chartTheme.tooltip.itemStyle}
+                        cursor={chartTheme.tooltip.cursor}
+                        formatter={(v, _n, item) => [
+                          `${v}% (${(item?.payload as { answered?: number })?.answered ?? 0} answered)`,
+                          'Mastery',
+                        ]}
+                      />
+                      <Bar dataKey="mastery" name="Mastery" radius={[0, 3, 3, 0]} maxBarSize={20}>
+                        {stats.topicMastery.map((t) => (
+                          <Cell key={t.topic} fill={masteryColor(t.mastery)} />
+                        ))}
+                      </Bar>
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+                <ul className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground" aria-label="Legend">
+                  <li className="flex items-center gap-1.5"><span className="size-2.5 rounded-sm bg-success" aria-hidden="true" />Strong (80%+)</li>
+                  <li className="flex items-center gap-1.5"><span className="size-2.5 rounded-sm bg-warning" aria-hidden="true" />Getting there (60–79%)</li>
+                  <li className="flex items-center gap-1.5"><span className="size-2.5 rounded-sm bg-danger" aria-hidden="true" />Needs work (under 60%)</li>
+                </ul>
+              </>
+            )}
+          </CardContent>
+        </Card>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Study hours bar chart */}
-        <Card className="glass border-border">
+      <div className="grid gap-6 lg:grid-cols-5">
+        {/* Heatmap */}
+        <Card className="lg:col-span-2">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-base">
-              <BarChart3 className="w-4 h-4 text-primary" />
-              Weekly Study Hours
-            </CardTitle>
-            <CardDescription>Hours studied per week over 6 weeks</CardDescription>
+            <CardTitle>Study days</CardTitle>
+            <CardDescription>Last 5 weeks</CardDescription>
           </CardHeader>
           <CardContent>
-            <div role="img" aria-label="Bar chart: weekly study hours over 6 weeks, peaking at 20 hours in week 6">
-              <ResponsiveContainer width="100%" height={200}>
-                <BarChart data={STUDY_HOURS}>
-                  <CartesianGrid strokeDasharray="3 3" stroke={chartTheme.grid} />
-                  <XAxis dataKey="week" tick={{ fill: chartTheme.tick, fontSize: 11 }} axisLine={false} tickLine={false} />
-                  <YAxis tick={{ fill: chartTheme.tick, fontSize: 11 }} axisLine={false} tickLine={false} />
-                  <Tooltip contentStyle={chartTheme.tooltip} />
-                  <Bar dataKey="hours" name="Hours" fill="hsl(262 83% 55%)" radius={[4, 4, 0, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Quiz accuracy line chart */}
-        <Card className="glass border-border">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-base">
-              <TrendingUp className="w-4 h-4 text-green-400" />
-              Quiz Accuracy Trend
-            </CardTitle>
-            <CardDescription>Score progression over recent quizzes</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div role="img" aria-label="Line chart: quiz accuracy trend from 62% on Jun 1 to 88% on Jun 18">
-              <ResponsiveContainer width="100%" height={200}>
-                <LineChart data={QUIZ_ACCURACY}>
-                  <CartesianGrid strokeDasharray="3 3" stroke={chartTheme.grid} />
-                  <XAxis dataKey="date" tick={{ fill: chartTheme.tick, fontSize: 11 }} axisLine={false} tickLine={false} />
-                  <YAxis domain={[0, 100]} tick={{ fill: chartTheme.tick, fontSize: 11 }} axisLine={false} tickLine={false} />
-                  <Tooltip contentStyle={chartTheme.tooltip} />
-                  <Line type="monotone" dataKey="score" name="Score %" stroke="hsl(142 70% 50%)" strokeWidth={2} dot={{ fill: 'hsl(142 70% 50%)', r: 4 }} />
-                </LineChart>
-              </ResponsiveContainer>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Radar / Topic mastery */}
-        <Card className="glass border-border">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-base">
-              <Target className="w-4 h-4 text-primary" />
-              Topic Mastery Overview
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div role="img" aria-label="Radar chart: topic mastery — Genetics 90%, Cell Biology 85%, Ecology 73%, Biochemistry 65%, Cell Division 62%, Protein Synthesis 41%">
-              <ResponsiveContainer width="100%" height={220}>
-                <RadarChart data={RADAR_DATA}>
-                  <PolarGrid stroke={chartTheme.grid} />
-                  <PolarAngleAxis dataKey="topic" tick={{ fill: chartTheme.tick, fontSize: 10 }} />
-                  <Radar name="Mastery" dataKey="A" stroke="hsl(262 83% 55%)" fill="hsl(262 83% 55%)" fillOpacity={0.2} />
-                  <Tooltip contentStyle={chartTheme.tooltip} />
-                </RadarChart>
-              </ResponsiveContainer>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Streak heatmap */}
-        <Card className="glass border-border">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-base">
-              <Flame className="w-4 h-4 text-orange-400" />
-              Study Streak Heatmap
-            </CardTitle>
-            <CardDescription>Last 5 weeks of activity</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div
-              role="img"
-              aria-label={`Study streak heatmap: ${STREAK_DAYS.filter((d) => d.active).length} out of 35 days active in the last 5 weeks`}
-            >
-              <div className="grid grid-cols-7 gap-1.5" aria-hidden="true">
-                {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((d, i) => (
-                  <div key={i} className="text-center text-xs text-muted-foreground pb-1">{d}</div>
+            <p className="sr-only">
+              {activeDays} of the last 35 days had study activity.
+            </p>
+            <div aria-hidden="true">
+              <div className="mb-1.5 grid grid-cols-7 gap-1.5 text-center font-mono text-[10px] uppercase text-muted-foreground">
+                {['M', 'T', 'W', 'T', 'F', 'S', 'S'].map((d, i) => (
+                  <span key={i}>{d}</span>
                 ))}
-                {STREAK_DAYS.map(({ day, active }) => (
+              </div>
+              <div className="grid grid-cols-7 gap-1.5">
+                {heatDays.map(({ date, count, future }) => (
                   <div
-                    key={day}
-                    className={`h-7 rounded ${active ? 'bg-orange-500/70' : 'bg-secondary'} transition-colors`}
-                    title={`Day ${day + 1}: ${active ? 'Studied' : 'Not studied'}`}
+                    key={dayKey(date)}
+                    title={future ? undefined : `${format(date, 'EEE, MMM d')}: ${count} ${count === 1 ? 'action' : 'actions'}`}
+                    className={cn(
+                      'aspect-square rounded-sm',
+                      future ? 'border border-dashed border-border bg-transparent' : heatClasses[heatLevel(count)]
+                    )}
                   />
                 ))}
               </div>
+              <div className="mt-3 flex items-center justify-between text-xs text-muted-foreground">
+                <span className="tabular">{activeDays} active days</span>
+                <span className="flex items-center gap-1">
+                  Less
+                  {heatClasses.map((c) => (
+                    <span key={c} className={cn('size-3 rounded-sm', c)} />
+                  ))}
+                  More
+                </span>
+              </div>
             </div>
-            <p className="text-xs text-muted-foreground mt-3">
-              {STREAK_DAYS.filter((d) => d.active).length} / 35 days active
-            </p>
+          </CardContent>
+        </Card>
+
+        {/* Milestones */}
+        <Card className="lg:col-span-3">
+          <CardHeader>
+            <CardTitle>Milestones</CardTitle>
+            <CardDescription>
+              <span className="tabular">{milestones.filter((m) => m.done).length}</span> of {milestones.length} reached
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <ul className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+              {milestones.map(({ name, desc, icon: Icon, done }) => (
+                <li
+                  key={name}
+                  className={cn(
+                    'flex items-center gap-3 rounded-md border p-3',
+                    done ? 'border-border bg-card' : 'border-dashed border-border bg-muted/40'
+                  )}
+                >
+                  <div
+                    className={cn(
+                      'grid size-9 shrink-0 place-items-center rounded-md',
+                      done ? 'bg-primary-soft text-primary' : 'bg-muted text-muted-foreground'
+                    )}
+                  >
+                    <Icon className="size-4" aria-hidden="true" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className={cn('text-sm font-medium', done ? 'text-foreground' : 'text-muted-foreground')}>{name}</p>
+                    <p className="text-xs text-muted-foreground">{desc}</p>
+                  </div>
+                  {done ? (
+                    <span className="flex shrink-0 items-center gap-1 text-xs font-medium text-success">
+                      <CheckCircle2 className="size-3.5" aria-hidden="true" />
+                      Reached
+                    </span>
+                  ) : (
+                    <span className="flex shrink-0 items-center gap-1 text-xs text-muted-foreground">
+                      <Lock className="size-3.5" aria-hidden="true" />
+                      Locked
+                    </span>
+                  )}
+                </li>
+              ))}
+            </ul>
           </CardContent>
         </Card>
       </div>
-
-      {/* Weak areas */}
-      <Card className="glass border-border">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-base">
-            <AlertTriangle className="w-4 h-4 text-orange-400" />
-            Weak Areas & Recommendations
-          </CardTitle>
-          <CardDescription>Topics that need more focus based on your quiz performance</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {WEAK_AREAS.map(({ topic, mastery, recommendation }) => (
-            <div key={topic} className="p-4 rounded-lg bg-secondary/50 border border-border space-y-2">
-              <div className="flex items-center justify-between">
-                <span className="font-medium text-sm">{topic}</span>
-                <Badge variant={mastery < 50 ? 'destructive' : 'secondary'} className="text-xs">{mastery}% mastery</Badge>
-              </div>
-              <Progress value={mastery} className="h-1.5" />
-              <p className="text-xs text-muted-foreground flex items-center gap-1.5">
-                <span className="text-yellow-400">Tip:</span>
-                {recommendation}
-              </p>
-            </div>
-          ))}
-        </CardContent>
-      </Card>
-
-      {/* Badges */}
-      <Card className="glass border-border">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-base">
-            <Trophy className="w-4 h-4 text-yellow-400" />
-            Achievements
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
-            {BADGES.map(({ name, icon, desc }) => (
-              <div key={name} className="flex flex-col items-center text-center gap-2 p-3 rounded-xl glass border border-border hover:border-primary/30 transition-colors">
-                <span className="text-3xl">{icon}</span>
-                <p className="text-xs font-semibold text-foreground">{name}</p>
-                <p className="text-xs text-muted-foreground leading-tight">{desc}</p>
-              </div>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
     </div>
   )
 }

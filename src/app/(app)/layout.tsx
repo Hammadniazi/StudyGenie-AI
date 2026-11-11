@@ -6,7 +6,6 @@ export const dynamic = 'force-dynamic'
 export default async function AppRootLayout({ children }: { children: React.ReactNode }) {
   let userEmail: string | undefined
   let userName: string | undefined
-  let xp = 0
 
   try {
     const supabase = await createClient()
@@ -22,7 +21,7 @@ export default async function AppRootLayout({ children }: { children: React.Reac
   }
 
   return (
-    <AppLayout userEmail={userEmail} userName={userName} xp={xp}>
+    <AppLayout userEmail={userEmail} userName={userName}>
       {children}
     </AppLayout>
   )

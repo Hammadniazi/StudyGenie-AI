@@ -1,61 +1,67 @@
-import { Sparkles } from 'lucide-react'
 import Link from 'next/link'
+import { Check, ChevronLeft } from 'lucide-react'
+import { Logo } from '@/components/brand'
+import { ThemeToggle } from '@/components/theme'
+
+const points = [
+  'Summaries and key terms from your own notes',
+  'Flashcards and practice quizzes you can retake',
+  'A day-by-day plan up to your exam date',
+]
 
 export default function AuthLayout({ children }: { children: React.ReactNode }) {
   return (
-    <div className="min-h-screen gradient-bg flex">
-      {/* Left decorative panel — hidden on mobile */}
-      <div className="hidden lg:flex lg:w-1/2 relative flex-col items-center justify-center p-12 overflow-hidden">
-        {/* Background orbs */}
-        <div className="absolute top-1/4 left-1/4 w-64 h-64 rounded-full bg-purple-600/20 blur-3xl" />
-        <div className="absolute bottom-1/4 right-1/4 w-48 h-48 rounded-full bg-blue-600/20 blur-3xl" />
-
-        <div className="relative z-10 text-center">
-          <Link href="/" className="inline-flex items-center gap-3 mb-12">
-            <div className="w-12 h-12 rounded-xl bg-primary/20 border border-primary/30 flex items-center justify-center">
-              <Sparkles className="w-6 h-6 text-primary" />
-            </div>
-            <span className="text-2xl font-bold text-foreground">StudyGenie AI</span>
-          </Link>
-
-          <h2 className="text-4xl font-bold mb-4 gradient-text leading-tight">
-            Study Smarter,<br />Not Harder
-          </h2>
-          <p className="text-muted-foreground text-lg max-w-sm mx-auto leading-relaxed">
-            Transform any study material into flashcards, quizzes, summaries, and personalized study plans — instantly.
+    <div className="flex min-h-dvh bg-background">
+      {/* Left panel — large screens only */}
+      <aside className="hidden w-[44%] max-w-xl flex-col justify-between border-r border-border bg-muted p-10 lg:flex xl:p-14">
+        <Logo />
+        <div>
+          <p className="font-display text-[2rem] font-medium leading-tight tracking-tight text-foreground">
+            “The best time to start revising was last week. The second best is <span className="marker">tonight</span>.”
           </p>
-
-          <div className="mt-10 grid grid-cols-2 gap-4 max-w-xs mx-auto">
-            {['AI Summaries', 'Smart Quizzes', 'Flashcards', 'Study Plans'].map((item) => (
-              <div key={item} className="glass rounded-lg px-3 py-2 text-sm text-center text-muted-foreground border border-border">
-                {item}
-              </div>
+          <ul className="mt-10 space-y-3">
+            {points.map((p) => (
+              <li key={p} className="flex items-start gap-3 text-foreground">
+                <span className="mt-0.5 grid size-5 shrink-0 place-items-center rounded-sm bg-primary text-primary-foreground">
+                  <Check className="size-3.5" aria-hidden="true" />
+                </span>
+                {p}
+              </li>
             ))}
+          </ul>
+        </div>
+        <Link
+          href="/"
+          className="inline-flex w-fit items-center gap-1 rounded-sm text-sm text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        >
+          <ChevronLeft className="size-4" aria-hidden="true" />
+          Back to home
+        </Link>
+      </aside>
+
+      {/* Form side */}
+      <div className="flex flex-1 flex-col">
+        <div className="flex items-center justify-between px-4 py-4 sm:px-6">
+          <div className="lg:hidden">
+            <Logo />
+          </div>
+          <div className="ml-auto">
+            <ThemeToggle />
           </div>
         </div>
-      </div>
 
-      {/* Right: auth form */}
-      <div className="flex-1 flex items-center justify-center p-6">
-        <div className="w-full max-w-md">
-          {/* Mobile brand — links home */}
-          <div className="lg:hidden flex items-center gap-2 mb-6 justify-center">
-            <Link href="/" className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-lg bg-primary/20 border border-primary/30 flex items-center justify-center">
-                <Sparkles className="w-4 h-4 text-primary" />
-              </div>
-              <span className="font-bold text-lg">StudyGenie AI</span>
-            </Link>
-          </div>
-          {/* Back to home — visible on all screen sizes */}
-          <div className="mb-4">
-            <Link href="/" className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors">
-              <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="m15 18-6-6 6-6"/></svg>
+        <main id="main-content" className="flex flex-1 items-start justify-center px-4 pb-12 pt-4 sm:items-center sm:px-6">
+          <div className="w-full max-w-[420px]">
+            <Link
+              href="/"
+              className="mb-5 inline-flex h-10 items-center gap-1 rounded-sm text-sm text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring lg:hidden"
+            >
+              <ChevronLeft className="size-4" aria-hidden="true" />
               Back to home
             </Link>
+            {children}
           </div>
-          {children}
-        </div>
+        </main>
       </div>
     </div>
   )

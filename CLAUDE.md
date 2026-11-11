@@ -28,13 +28,17 @@ No test suite exists yet.
 
 **Auth:** Supabase (`@supabase/ssr`). The middleware at `src/lib/supabase/middleware.ts` refreshes the session cookie but does **not** redirect unauthenticated users — all app pages work in guest mode with mock/demo data. If `NEXT_PUBLIC_SUPABASE_URL` / `NEXT_PUBLIC_SUPABASE_ANON_KEY` are missing or empty, Supabase is skipped entirely (`isSupabaseConfigured()` guard in `src/lib/supabase/client.ts`).
 
-**Guest mode:** When `userEmail` is `undefined`, the sidebar shows "Guest User" with Sign In and Go to Homepage buttons. The sidebar logo links to `/` for guests, `/dashboard` for authenticated users.
+**Guest mode:** When `userEmail` is `undefined`, the sidebar shows a guest-session card (work saved in this browser) with Create account and Sign in buttons. The sidebar logo links to `/` for guests, `/dashboard` for authenticated users.
 
-**Shared UI:** Radix UI primitives wrapped in `src/components/ui/`. Layout components are `src/components/layout/` (app-layout, sidebar, header). Theme is dark by default; toggle is in the header.
+**Shared UI:** Radix UI primitives wrapped in `src/components/ui/`. Layout components are `src/components/layout/` (app-layout, sidebar, header). Brand mark in `src/components/brand.tsx`; empty/example notices in `src/components/empty-state.tsx`.
+
+**Design system ("study notebook"):** All colours are CSS variables in `src/app/globals.css` (light + `[data-theme='dark']`), mapped to Tailwind via `@theme inline`. Use tokens only — `primary`, `primary-soft`, `success|warning|danger` (+ `-soft`), `highlight`, `muted`, `border(-strong)`, `card` — never raw palette classes like `text-yellow-400`. Fonts: Fraunces (`font-display`, headings), IBM Plex Sans (body), IBM Plex Mono (`font-mono`, small labels). `.marker` = highlighter accent behind a word; use sparingly. Charts take colours from `src/lib/chart-theme.ts`. Links styled as buttons use `<Button asChild><Link/></Button>`. Avoid glassmorphism, gradients, sparkle icons and emoji.
+
+**Theme:** `THEME_INIT_SCRIPT` (in `src/components/theme.tsx`, injected in the root layout `<head>`) sets `<html data-theme>` before paint from localStorage (`sg-theme`) or the OS preference. `ThemeToggle` / `useTheme()` read and write that attribute.
 
 **PDF parsing:** Uses `pdf-parse` v2 (ESM, class-based API). `next.config.ts` must list `serverExternalPackages: ['pdf-parse', 'pdfjs-dist', '@napi-rs/canvas']` — pdf-parse v2 depends on `@napi-rs/canvas` (a native `.node` binary) which Next.js's bundler cannot bundle. The route `src/app/api/parse-pdf/route.ts` does `const { PDFParse } = await import('pdf-parse')`, then `new PDFParse({ data: Uint8Array })` and calls `.getText()`. Result has `.pages[].text` and `.total`. v1's simple function call no longer works — always use the class API.
 
-**State:** No global state library. Each page manages its own state with `useState`/`useRef`. All data is mock/demo; there is no database integration yet beyond auth.
+**State:** `src/contexts/study-data-context.tsx` is a localStorage-backed store (`useSyncExternalStore`, key `sg-study-data-v1`) holding materials, flashcards, quizzes, quiz attempts and an activity log, plus derived `stats` (streak, topic mastery, averages). Example content has ids prefixed `example-` (`isExample()`), is labelled in the UI, and is never counted in stats. There is no database integration yet beyond auth.
 
 ## Environment variables
 

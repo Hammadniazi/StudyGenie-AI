@@ -3,20 +3,16 @@ import { cva, type VariantProps } from 'class-variance-authority'
 import { cn } from '@/lib/utils'
 
 const badgeVariants = cva(
-  'inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2',
+  'inline-flex items-center gap-1 rounded-sm border px-1.5 py-0.5 text-xs font-medium leading-none whitespace-nowrap',
   {
     variants: {
       variant: {
-        default:
-          'border-transparent bg-primary text-primary-foreground hover:bg-primary/80',
-        secondary:
-          'border-transparent bg-secondary text-secondary-foreground hover:bg-secondary/80',
-        destructive:
-          'border-transparent bg-destructive text-destructive-foreground hover:bg-destructive/80',
-        outline:
-          'border-border text-foreground',
-        success:
-          'border-transparent bg-green-600/20 text-green-400 border-green-600/30',
+        default: 'border-transparent bg-primary-soft text-primary',
+        secondary: 'border-transparent bg-muted text-muted-foreground',
+        outline: 'border-border-strong text-muted-foreground',
+        success: 'border-transparent bg-success-soft text-success',
+        warning: 'border-transparent bg-warning-soft text-warning',
+        destructive: 'border-transparent bg-danger-soft text-danger',
       },
     },
     defaultVariants: {
@@ -26,13 +22,18 @@ const badgeVariants = cva(
 )
 
 export interface BadgeProps
-  extends React.HTMLAttributes<HTMLDivElement>,
+  extends React.HTMLAttributes<HTMLSpanElement>,
     VariantProps<typeof badgeVariants> {}
 
 function Badge({ className, variant, ...props }: BadgeProps) {
-  return (
-    <div className={cn(badgeVariants({ variant }), className)} {...props} />
-  )
+  return <span className={cn(badgeVariants({ variant }), className)} {...props} />
 }
+
+/** Maps a difficulty level to a badge variant — colour plus the visible word, never colour alone. */
+export const difficultyVariant = {
+  easy: 'success',
+  medium: 'warning',
+  hard: 'destructive',
+} as const
 
 export { Badge, badgeVariants }

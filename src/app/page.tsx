@@ -1,233 +1,216 @@
-'use client'
-
 import Link from 'next/link'
-import { motion } from 'framer-motion'
 import {
-  Bot,
-  Trophy,
-  CreditCard,
-  Calendar,
-  BarChart3,
-  Target,
-  Sparkles,
   ArrowRight,
-  Zap,
-  BookOpen,
-  Users,
+  Check,
+  FileText,
+  Layers,
+  ListChecks,
+  MessagesSquare,
+  CalendarDays,
+  LineChart,
+  ShieldCheck,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { Logo } from '@/components/brand'
+import { ThemeToggle } from '@/components/theme'
+
+const steps = [
+  {
+    n: '01',
+    title: 'Add your material',
+    body: 'Upload a PDF or text file, or paste notes straight from a lecture or textbook chapter.',
+  },
+  {
+    n: '02',
+    title: 'Get study material back',
+    body: 'A summary, key terms, flashcards and a practice quiz, all built from what you added.',
+  },
+  {
+    n: '03',
+    title: 'Revise and check yourself',
+    body: 'Flip through cards, take the quiz, and see which topics still need another pass.',
+  },
+]
 
 const features = [
-  {
-    icon: Bot,
-    title: 'AI Tutor',
-    description: 'Chat with an intelligent tutor that adapts to your learning style and guides you step by step.',
-    color: 'text-purple-400',
-    bg: 'bg-purple-500/10 border-purple-500/20',
-  },
-  {
-    icon: Trophy,
-    title: 'Quiz Generator',
-    description: 'Auto-generate multiple choice, true/false, and short answer quizzes from any material.',
-    color: 'text-yellow-400',
-    bg: 'bg-yellow-500/10 border-yellow-500/20',
-  },
-  {
-    icon: CreditCard,
-    title: 'Smart Flashcards',
-    description: 'AI-created flashcards with spaced repetition to maximize retention and recall.',
-    color: 'text-blue-400',
-    bg: 'bg-blue-500/10 border-blue-500/20',
-  },
-  {
-    icon: Calendar,
-    title: 'Study Planner',
-    description: 'Personalized study schedules with smart task distribution based on your exam date.',
-    color: 'text-green-400',
-    bg: 'bg-green-500/10 border-green-500/20',
-  },
-  {
-    icon: BarChart3,
-    title: 'Analytics',
-    description: 'Track study hours, quiz accuracy, streaks, and topic mastery with beautiful charts.',
-    color: 'text-orange-400',
-    bg: 'bg-orange-500/10 border-orange-500/20',
-  },
-  {
-    icon: Target,
-    title: 'Weak Area Detection',
-    description: 'AI identifies your weak spots and focuses your study sessions where you need it most.',
-    color: 'text-red-400',
-    bg: 'bg-red-500/10 border-red-500/20',
-  },
+  { icon: FileText, title: 'Summaries', body: 'The main points, learning objectives and definitions from a chapter on one page.' },
+  { icon: Layers, title: 'Flashcards', body: 'Question-and-answer cards tagged by topic and difficulty. Save the ones you keep missing.' },
+  { icon: ListChecks, title: 'Practice quizzes', body: 'Multiple choice, true/false and short answer, with an explanation for every question.' },
+  { icon: MessagesSquare, title: 'Tutor chat', body: 'Ask follow-up questions about anything you didn’t understand, in plain language.' },
+  { icon: CalendarDays, title: 'Study plan', body: 'Give it your exam date and daily hours; get a day-by-day schedule you can tick off.' },
+  { icon: LineChart, title: 'Progress', body: 'Quiz scores by topic and a streak, based only on what you’ve actually done.' },
 ]
 
-const stats = [
-  { icon: Zap, value: '10x', label: 'Faster Learning', color: 'text-yellow-400' },
-  { icon: BookOpen, value: '95%', label: 'Retention Rate', color: 'text-blue-400' },
-  { icon: Users, value: 'AI', label: 'Powered Tutor', color: 'text-purple-400' },
-]
+function ProductPreview() {
+  return (
+    <div aria-hidden="true" className="relative mx-auto w-full max-w-md select-none lg:mx-0">
+      {/* Summary card */}
+      <div className="rounded-lg border border-border bg-card p-5 shadow-md">
+        <div className="mb-3 flex items-center justify-between">
+          <span className="font-mono text-[11px] uppercase tracking-wider text-muted-foreground">Summary · Biology ch. 5</span>
+          <span className="rounded-sm bg-primary-soft px-1.5 py-0.5 text-[11px] font-medium text-primary">4 key terms</span>
+        </div>
+        <p className="text-sm leading-relaxed text-foreground">
+          Cells copy their DNA before dividing. Replication is{' '}
+          <span className="marker">semi-conservative</span>: each new double helix keeps one original strand and
+          builds one new one, using DNA polymerase.
+        </p>
+      </div>
 
-const fadeUp = {
-  hidden: { opacity: 0, y: 30 },
-  visible: { opacity: 1, y: 0 },
-}
+      <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-[1fr_1.1fr]">
+        {/* Flashcard */}
+        <div className="flex flex-col justify-between rounded-lg border border-border bg-card p-4 shadow-sm sm:-rotate-1">
+          <div className="flex items-center justify-between">
+            <span className="rounded-sm bg-warning-soft px-1.5 py-0.5 text-[11px] font-medium text-warning">medium</span>
+            <span className="font-mono text-[11px] text-muted-foreground">3 / 12</span>
+          </div>
+          <p className="mt-3 text-sm font-medium leading-snug text-foreground">
+            What is the difference between mitosis and meiosis?
+          </p>
+          <p className="mt-3 text-xs text-muted-foreground">Tap to see the answer</p>
+        </div>
 
-const stagger = {
-  visible: { transition: { staggerChildren: 0.1 } },
+        {/* Quiz */}
+        <div className="rounded-lg border border-border bg-card p-4 shadow-sm">
+          <p className="text-sm font-medium leading-snug text-foreground">Which protein carries oxygen in red blood cells?</p>
+          <ul className="mt-3 space-y-1.5 text-sm">
+            <li className="rounded-md border border-border px-2.5 py-1.5 text-muted-foreground">Insulin</li>
+            <li className="flex items-center justify-between rounded-md border border-success/50 bg-success-soft px-2.5 py-1.5 font-medium text-success">
+              Hemoglobin <Check className="size-4" />
+            </li>
+            <li className="rounded-md border border-border px-2.5 py-1.5 text-muted-foreground">Keratin</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  )
 }
 
 export default function LandingPage() {
+  const year = new Date().getFullYear()
+
   return (
-    <div className="min-h-screen gradient-bg text-foreground">
-      {/* Nav */}
-      <nav className="flex items-center justify-between px-6 py-4 max-w-7xl mx-auto">
-        <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-lg bg-primary/20 border border-primary/30 flex items-center justify-center">
-            <Sparkles className="w-4 h-4 text-primary" />
-          </div>
-          <span className="font-bold text-lg">StudyGenie AI</span>
-        </div>
-        <div className="flex items-center gap-3">
-          <Link href="/login">
-            <Button variant="ghost" size="sm">Log in</Button>
-          </Link>
-          <Link href="/register">
-            <Button size="sm">Get Started</Button>
-          </Link>
-        </div>
-      </nav>
+    <div className="min-h-dvh bg-background text-foreground">
+      <header className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-4 sm:px-6">
+        <Logo />
+        <nav aria-label="Account" className="flex items-center gap-1 sm:gap-2">
+          <ThemeToggle />
+          <Button asChild variant="ghost" className="hidden sm:inline-flex">
+            <Link href="/login">Log in</Link>
+          </Button>
+          <Button asChild>
+            <Link href="/register">Get started</Link>
+          </Button>
+        </nav>
+      </header>
 
-      {/* Hero */}
-      <section className="relative px-6 pt-20 pb-32 max-w-7xl mx-auto text-center overflow-hidden">
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-[600px] rounded-full bg-purple-600/10 blur-3xl pointer-events-none" />
-        <div className="absolute top-20 left-1/4 w-[300px] h-[300px] rounded-full bg-blue-600/10 blur-3xl pointer-events-none" />
-
-        <motion.div
-          initial="hidden"
-          animate="visible"
-          variants={stagger}
-          className="relative z-10"
-        >
-          <motion.div variants={fadeUp} className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full glass border border-primary/20 text-primary text-sm font-medium mb-6">
-            <Sparkles className="w-3.5 h-3.5" />
-            Powered by Google Gemini AI
-          </motion.div>
-
-          <motion.h1
-            variants={fadeUp}
-            className="text-5xl md:text-7xl font-extrabold leading-tight tracking-tight mb-6"
-          >
-            The AI Study Companion{' '}
-            <span className="gradient-text">That Actually Works</span>
-          </motion.h1>
-
-          <motion.p
-            variants={fadeUp}
-            className="text-xl text-muted-foreground max-w-2xl mx-auto mb-10"
-          >
-            Upload your study materials and instantly get AI-powered summaries, flashcards,
-            quizzes, personalized study plans, and a 24/7 AI tutor — all in one place.
-          </motion.p>
-
-          <motion.div variants={fadeUp} className="flex flex-col sm:flex-row items-center justify-center gap-4">
-            <Link href="/register">
-              <Button size="lg" className="gap-2 px-8">
-                Get Started Free
-                <ArrowRight className="w-4 h-4" />
-              </Button>
-            </Link>
-            <Link href="/dashboard">
-              <Button size="lg" variant="outline" className="gap-2 px-8">
-                Explore as Guest
-              </Button>
-            </Link>
-          </motion.div>
-        </motion.div>
-      </section>
-
-      {/* Stats */}
-      <section className="px-6 pb-20 max-w-7xl mx-auto">
-        <motion.div
-          initial="hidden"
-          whileInView="visible"
-          viewport={{ once: true }}
-          variants={stagger}
-          className="grid grid-cols-1 sm:grid-cols-3 gap-6"
-        >
-          {stats.map(({ icon: Icon, value, label, color }) => (
-            <motion.div
-              key={label}
-              variants={fadeUp}
-              className="glass rounded-2xl p-8 text-center border border-border"
-            >
-              <Icon className={`w-8 h-8 mx-auto mb-3 ${color}`} />
-              <div className={`text-5xl font-extrabold mb-2 ${color}`}>{value}</div>
-              <div className="text-muted-foreground font-medium">{label}</div>
-            </motion.div>
-          ))}
-        </motion.div>
-      </section>
-
-      {/* Features */}
-      <section className="px-6 py-20 max-w-7xl mx-auto">
-        <motion.div
-          initial="hidden"
-          whileInView="visible"
-          viewport={{ once: true }}
-          variants={stagger}
-        >
-          <motion.div variants={fadeUp} className="text-center mb-16">
-            <h2 className="text-4xl font-bold mb-4">Everything you need to ace your exams</h2>
-            <p className="text-muted-foreground text-lg max-w-xl mx-auto">
-              Six powerful AI tools working together to make studying smarter, not harder.
+      <main id="main-content">
+        {/* Hero */}
+        <section className="mx-auto grid max-w-6xl items-center gap-12 px-4 pb-20 pt-10 sm:px-6 lg:grid-cols-[1.05fr_1fr] lg:gap-16 lg:pt-20">
+          <div>
+            <p className="mb-4 font-mono text-xs uppercase tracking-wider text-muted-foreground">For exam season, and the weeks before it</p>
+            <h1 className="font-display text-[2.5rem] font-semibold leading-[1.08] tracking-tight sm:text-5xl lg:text-[3.5rem]">
+              Turn your lecture notes into something you can <span className="marker">revise</span>.
+            </h1>
+            <p className="mt-6 max-w-xl text-lg leading-relaxed text-muted-foreground">
+              Add a PDF or paste your notes. StudyGenie writes a summary, makes flashcards and a practice quiz from
+              them, and helps you plan the days until your exam.
             </p>
-          </motion.div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {features.map(({ icon: Icon, title, description, color, bg }) => (
-              <motion.div
-                key={title}
-                variants={fadeUp}
-                whileHover={{ y: -4, transition: { duration: 0.2 } }}
-                className="glass rounded-2xl p-6 border border-border hover:border-primary/20 transition-colors cursor-default"
-              >
-                <div className={`inline-flex items-center justify-center w-12 h-12 rounded-xl border ${bg} mb-4`}>
-                  <Icon className={`w-6 h-6 ${color}`} />
-                </div>
-                <h3 className="text-lg font-semibold mb-2">{title}</h3>
-                <p className="text-muted-foreground text-sm leading-relaxed">{description}</p>
-              </motion.div>
-            ))}
+            <div className="mt-8 flex flex-col gap-3 sm:flex-row">
+              <Button asChild size="lg">
+                <Link href="/dashboard">
+                  Try it — no account needed
+                  <ArrowRight aria-hidden="true" />
+                </Link>
+              </Button>
+              <Button asChild size="lg" variant="outline">
+                <Link href="/register">Create an account</Link>
+              </Button>
+            </div>
+            <p className="mt-4 text-sm text-muted-foreground">Free to use. Guest work stays in your browser.</p>
           </div>
-        </motion.div>
-      </section>
 
-      {/* CTA */}
-      <section className="px-6 py-20">
-        <motion.div
-          initial="hidden"
-          whileInView="visible"
-          viewport={{ once: true }}
-          variants={fadeUp}
-          className="max-w-3xl mx-auto text-center glass rounded-3xl p-12 border border-primary/20"
-        >
-          <Sparkles className="w-10 h-10 text-primary mx-auto mb-4" />
-          <h2 className="text-4xl font-bold mb-4">Ready to study smarter?</h2>
-          <p className="text-muted-foreground mb-8 text-lg">
-            Join thousands of students using StudyGenie AI to learn faster and retain more.
-          </p>
-          <Link href="/register">
-            <Button size="lg" className="gap-2 px-10">
-              Start for Free <ArrowRight className="w-4 h-4" />
+          <ProductPreview />
+        </section>
+
+        {/* How it works */}
+        <section aria-labelledby="how-heading" className="border-y border-border bg-card">
+          <div className="mx-auto max-w-6xl px-4 py-16 sm:px-6 lg:py-20">
+            <h2 id="how-heading" className="font-display text-3xl font-semibold tracking-tight">How it works</h2>
+            <ol className="mt-10 grid gap-10 md:grid-cols-3 md:gap-8">
+              {steps.map((s) => (
+                <li key={s.n} className="border-t border-border-strong pt-5">
+                  <span className="font-mono text-sm text-primary">{s.n}</span>
+                  <h3 className="mt-2 text-lg font-semibold">{s.title}</h3>
+                  <p className="mt-2 leading-relaxed text-muted-foreground">{s.body}</p>
+                </li>
+              ))}
+            </ol>
+          </div>
+        </section>
+
+        {/* Features */}
+        <section aria-labelledby="features-heading" className="mx-auto max-w-6xl px-4 py-16 sm:px-6 lg:py-24">
+          <div className="max-w-2xl">
+            <h2 id="features-heading" className="font-display text-3xl font-semibold tracking-tight">
+              What you get from one upload
+            </h2>
+            <p className="mt-3 text-muted-foreground">Everything is made from your own material, not a generic question bank.</p>
+          </div>
+          <ul className="mt-12 grid gap-x-10 gap-y-9 sm:grid-cols-2 lg:grid-cols-3">
+            {features.map(({ icon: Icon, title, body }) => (
+              <li key={title} className="flex gap-4">
+                <div className="grid size-10 shrink-0 place-items-center rounded-md bg-primary-soft text-primary">
+                  <Icon className="size-5" aria-hidden="true" />
+                </div>
+                <div>
+                  <h3 className="font-semibold">{title}</h3>
+                  <p className="mt-1 text-sm leading-relaxed text-muted-foreground">{body}</p>
+                </div>
+              </li>
+            ))}
+          </ul>
+        </section>
+
+        {/* Privacy note */}
+        <section className="mx-auto max-w-6xl px-4 sm:px-6">
+          <div className="flex flex-col gap-4 rounded-lg border border-border bg-muted p-6 sm:flex-row sm:items-start">
+            <ShieldCheck className="size-6 shrink-0 text-primary" aria-hidden="true" />
+            <div>
+              <h2 className="font-semibold">You don&apos;t need an account to try it</h2>
+              <p className="mt-1 max-w-3xl text-sm leading-relaxed text-muted-foreground">
+                As a guest, your flashcards, quizzes and progress are saved in this browser only — clearing your
+                browser data removes them. Create an account if you want to keep them. The text you upload is sent
+                to the AI model to generate your study material.
+              </p>
+            </div>
+          </div>
+        </section>
+
+        {/* Closing CTA */}
+        <section className="mx-auto max-w-6xl px-4 py-20 sm:px-6 lg:py-24">
+          <div className="flex flex-col items-start justify-between gap-6 border-t border-border-strong pt-10 md:flex-row md:items-end">
+            <h2 className="max-w-xl font-display text-3xl font-semibold leading-tight tracking-tight sm:text-4xl">
+              Have a chapter to get through this week? Start with that one.
+            </h2>
+            <Button asChild size="lg">
+              <Link href="/upload">
+                Add your first notes
+                <ArrowRight aria-hidden="true" />
+              </Link>
             </Button>
-          </Link>
-        </motion.div>
-      </section>
+          </div>
+        </section>
+      </main>
 
-      {/* Footer */}
-      <footer className="border-t border-border px-6 py-8 text-center text-muted-foreground text-sm">
-        <p>© 2025 StudyGenie AI. Built with Next.js and Google Gemini AI.</p>
+      <footer className="border-t border-border">
+        <div className="mx-auto flex max-w-6xl flex-col gap-3 px-4 py-8 text-sm text-muted-foreground sm:px-6 md:flex-row md:items-center md:justify-between">
+          <p>© {year} StudyGenie</p>
+          <p className="max-w-xl md:text-right">
+            Summaries and questions are generated with Google Gemini; check important facts against your course
+            material.
+          </p>
+        </div>
       </footer>
     </div>
   )

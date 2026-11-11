@@ -27,19 +27,3 @@ export function calculateReadingTime(text: string): number {
   const wordCount = text.split(/\s+/).length
   return Math.ceil(wordCount / wordsPerMinute)
 }
-
-export function getDifficultyColor(difficulty: string): string {
-  switch (difficulty) {
-    case 'easy': return 'text-green-500'
-    case 'medium': return 'text-yellow-500'
-    case 'hard': return 'text-red-500'
-    default: return 'text-gray-500'
-  }
-}
-
-export function getMasteryColor(percentage: number): string {
-  if (percentage >= 80) return 'bg-green-500'
-  if (percentage >= 60) return 'bg-yellow-500'
-  if (percentage >= 40) return 'bg-orange-500'
-  return 'bg-red-500'
-}
